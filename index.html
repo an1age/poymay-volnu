@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Поймай волну</title>
+<meta name="description" content="Игра на чтение мыслей: экстрасенс видит цель на шкале и даёт подсказку, остальные ставят стрелку.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@600;800&display=swap">
+<style>
+/* Layout: одна колонка до 580px. Главный объект — шкала радиоприёмника (диск, шторка, стрелка),
+   под ней карточка-шкала из двух крайностей, подсказка и панель действий текущей фазы. */
+:root{
+  color-scheme:light;
+  --bg:#E6ECE8; --surface:#F4F7F4; --surface-2:#D8E2DC; --ink:#12201B; --muted:#53645D; --line:#C2CEC8; --key-edge:#B3C1BA;
+  --accent:#D4462A; --accent-edge:#9E3018; --accent-ink:#FFF6F1; --focus:#1F6FD1;
+  --face:#133A33; --face-2:#1A463E; --rim:#1E2A26; --tick:#EDE4C8; --shutter:#245A50; --shutter-2:#1C4C43;
+  --b2:#F3CB55; --b3:#EF9A3D; --b4:#D4462A; --num:#2A140A; --needle:#FBF6EA; --needle-edge:#091714;
+  --spec-l:#CFE2E9; --spec-l-ink:#123844; --spec-r:#F7DCCB; --spec-r-ink:#5A2412;
+  --team0:#2B67C6; --team1:#A93A88; --good:#2F8F5B; --shadow:rgba(9,23,20,.14);
+  --font-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --font-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0B1412; --surface:#121F1C; --surface-2:#1B2C28; --ink:#E2EBE7; --muted:#8DA098; --line:#25362F; --key-edge:#050B0A;
+  --accent:#EC6143; --accent-edge:#A93C22; --accent-ink:#1B0904; --focus:#6FA8FF;
+  --face:#103530; --face-2:#164239; --rim:#26342F; --tick:#E6DDC0; --shutter:#215247; --shutter-2:#1A463C;
+  --b2:#EFC54E; --b3:#EB9338; --b4:#E0553A; --num:#26120A; --needle:#FBF6EA; --needle-edge:#020807;
+  --spec-l:#16323C; --spec-l-ink:#BFE0EC; --spec-r:#3E2419; --spec-r-ink:#F5CDB8;
+  --team0:#6FA3F5; --team1:#E27CC6; --good:#4CC085; --shadow:rgba(0,0,0,.4);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0B1412; --surface:#121F1C; --surface-2:#1B2C28; --ink:#E2EBE7; --muted:#8DA098; --line:#25362F; --key-edge:#050B0A;
+  --accent:#EC6143; --accent-edge:#A93C22; --accent-ink:#1B0904; --focus:#6FA8FF;
+  --face:#103530; --face-2:#164239; --rim:#26342F; --tick:#E6DDC0; --shutter:#215247; --shutter-2:#1A463C;
+  --b2:#EFC54E; --b3:#EB9338; --b4:#E0553A; --num:#26120A; --needle:#FBF6EA; --needle-edge:#020807;
+  --spec-l:#16323C; --spec-l-ink:#BFE0EC; --spec-r:#3E2419; --spec-r-ink:#F5CDB8;
+  --team0:#6FA3F5; --team1:#E27CC6; --good:#4CC085; --shadow:rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top, 0px);padding-bottom:env(safe-area-inset-bottom, 0px)}
+body{margin:0}
+img{max-width:100%}
+#vHome.invited .hero{order:-2} #vHome.invited .panel-online{order:-1}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.app{max-width:580px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:12px 48px;display:flex;flex-direction:column;gap:18px}
+main{display:flex;flex-direction:column}
+.view{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+/* Шапка */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;color:inherit;padding:4px 0;cursor:pointer;font:inherit;border-radius:8px}
+.brand svg{width:34px;height:21px;flex:none}
+.logo-face{fill:var(--face)}
+.logo-needle{stroke:var(--accent);stroke-width:2.6;stroke-linecap:round;fill:none}
+.logo-hub{fill:var(--accent)}
+.wordmark{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.top-right{display:flex;align-items:center;gap:6px;min-width:0}
+
+/* Типографика */
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(30px, 9vw, 44px);line-height:1.02;font-weight:800;letter-spacing:-.025em}
+h1.h-sm{font-size:clamp(24px, 7vw, 32px)}
+h2{font-size:15px;font-weight:600;letter-spacing:.005em}
+.lead{color:var(--muted);margin:0;max-width:60ch}
+.eyebrow{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.msg{color:var(--muted);margin:0}
+.msg b,.msg strong{color:var(--ink);font-weight:600}
+.small{font-size:13px}
+.mono{font-family:var(--font-mono)}
+.hero{display:flex;flex-direction:column;gap:10px}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+/* Поверхности */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* Кнопки-клавиши */
+.btn{appearance:none;border:0;border-radius:12px;min-height:48px;padding:0 18px;font:600 16px/1.1 var(--font-body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--surface-2);color:var(--ink);box-shadow:0 3px 0 var(--key-edge);transition:transform .06s ease, box-shadow .06s ease;text-align:center}
+.btn:active:not([disabled]){transform:translateY(2px);box-shadow:0 1px 0 var(--key-edge)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 3px 0 var(--accent-edge)}
+.btn-primary:active:not([disabled]){box-shadow:0 1px 0 var(--accent-edge)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn-block{width:100%}
+.btn-quiet{appearance:none;background:none;border:0;color:var(--muted);min-height:40px;padding:0 8px;font:500 14px var(--font-body);cursor:pointer;text-decoration:underline;text-underline-offset:3px;border-radius:8px;align-self:center}
+.btn-quiet:hover{color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.row > .btn{flex:1 1 auto}
+.row > input{flex:1 1 140px}
+.nudge .btn:not(.grow){flex:0 0 56px;font-size:22px;padding:0}
+.nudge .grow{flex:1 1 auto}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* Поля и переключатели */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field > label,.label{font-size:13px;color:var(--muted);font-weight:500}
+input[type=text]{height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 14px;font:500 16px var(--font-body);width:100%;min-width:0}
+input[type=text]::placeholder{color:var(--muted);opacity:.75}
+input.code-input{font-family:var(--font-mono);font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.seg{display:flex;background:var(--surface-2);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;min-height:40px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px var(--font-body);cursor:pointer;padding:0 8px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px var(--shadow)}
+
+/* Шкала */
+.dial{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y;overflow:visible}
+.dial.is-live{touch-action:none;cursor:grab}
+.dial.is-live:active{cursor:grabbing}
+.dial:focus-visible{outline-offset:4px;border-radius:12px}
+.d-rim,.d-base{fill:var(--rim)}
+.d-face{fill:var(--face)}
+.d-spoke{stroke:var(--face-2);stroke-width:1.4}
+.d-b2{fill:var(--b2)} .d-b3{fill:var(--b3)} .d-b4{fill:var(--b4)}
+.d-num{font:700 15px var(--font-mono);fill:var(--num)}
+.d-shut{fill:var(--shutter)}
+.d-groove{fill:none;stroke:var(--shutter-2);stroke-width:2.5}
+.d-wave{fill:none;stroke:var(--tick);stroke-width:2.5;opacity:.45;stroke-linecap:round}
+.d-tick{stroke:var(--tick);stroke-width:1.4;opacity:.5}
+.d-tick-major{stroke-width:2.4;opacity:.9}
+.d-needle-shadow{stroke:var(--needle-edge);stroke-width:7.5;stroke-linecap:round;opacity:.5}
+.d-needle-line{stroke:var(--needle);stroke-width:3.5;stroke-linecap:round}
+.d-needle-knob{fill:var(--needle);stroke:var(--needle-edge);stroke-width:2.5}
+.d-hub{fill:var(--rim);stroke:var(--tick);stroke-width:2}
+.d-hub-dot{fill:var(--accent)}
+
+/* Карточка-шкала */
+.spectrum{display:grid;grid-template-columns:1fr 1fr;border-radius:14px;overflow:hidden}
+.spectrum > div{padding:12px 14px;font-weight:700;font-size:15px;line-height:1.2;min-width:0;overflow-wrap:anywhere}
+.spec-l{background:var(--spec-l);color:var(--spec-l-ink)}
+.spec-r{background:var(--spec-r);color:var(--spec-r-ink);text-align:right}
+.spectrum.is-empty > div{font-weight:500;opacity:.75}
+
+/* Демо на главной */
+.demo{margin:0;display:flex;flex-direction:column;gap:10px}
+.demo-cap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+.demo-cap b{color:var(--ink)}
+.demo-score{font-family:var(--font-mono);font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;counter-increment:s;min-width:0}
+.steps li::before{content:counter(s);font:700 13px/28px var(--font-mono);text-align:center;width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--ink)}
+
+/* Игра */
+.g-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.g-head .who{font-size:14px;color:var(--muted)}
+.g-head .who b{color:var(--ink)}
+.clue{font-family:var(--font-display);font-weight:600;font-size:clamp(22px, 6.5vw, 30px);text-align:center;line-height:1.15;text-wrap:balance;overflow-wrap:anywhere}
+.clue small{display:block;font:500 11px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.clue.is-quiet{font-size:18px;color:var(--muted)}
+.g-panel{display:flex;flex-direction:column;gap:12px}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--surface);cursor:pointer;font:600 14px/1.25 var(--font-body);color:var(--ink);text-align:left;min-width:0}
+.opt span{min-width:0;overflow-wrap:anywhere}
+.opt span:last-child{text-align:right}
+.opt .arr{color:var(--muted);font-family:var(--font-mono);font-weight:500}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--bg)}
+.result{display:flex;align-items:center;gap:16px}
+.result .pts{font:800 48px/1 var(--font-display);color:var(--accent);font-variant-numeric:tabular-nums;flex:none;min-width:64px;text-align:center}
+.result .pts.is-zero{color:var(--muted)}
+.res-title{font-family:var(--font-display);font-weight:600;font-size:18px;margin-bottom:2px}
+.foot{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+
+/* Счёт и игроки */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font:700 13px var(--font-mono);white-space:nowrap}
+.chip b{font-variant-numeric:tabular-nums}
+.chip.is-active{border-color:var(--team-c);box-shadow:inset 0 0 0 1px var(--team-c)}
+.t0{--team-c:var(--team0)} .t1{--team-c:var(--team1)}
+.tdot{width:9px;height:9px;border-radius:50%;background:var(--team-c);flex:none}
+.players{display:flex;flex-wrap:wrap;gap:6px}
+.pl{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:13px;font-weight:600;max-width:100%;min-width:0}
+.pl .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pl .on{width:7px;height:7px;border-radius:50%;background:var(--line);flex:none}
+.pl .on.is-on{background:var(--good)}
+.tag{font:500 10px var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.team{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0;padding:10px;border-radius:12px;background:var(--bg)}
+.team-name{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}
+
+/* Лобби */
+.lobby-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.code{font:700 36px/1 var(--font-mono);letter-spacing:.18em;margin-top:4px}
+.rooms{display:flex;flex-direction:column;gap:6px}
+.room{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);cursor:pointer;color:var(--ink);font:inherit;text-align:left;width:100%;min-height:48px}
+.room > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room code{font:700 15px var(--font-mono);letter-spacing:.1em;flex:none}
+
+/* Итоги */
+.big-score{font:800 44px/1 var(--font-display);margin:0;font-variant-numeric:tabular-nums}
+.big-score .t0{color:var(--team0)} .big-score .t1{color:var(--team1)}
+.tbl{overflow-x:auto}
+.hist{width:100%;border-collapse:collapse;font-size:14px}
+.hist td,.hist th{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.hist th{font:500 10px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hist .num{text-align:right;font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist .n{width:28px;color:var(--muted)}
+.side-pt{color:var(--team-c)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom, 0px));width:max-content;max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;font-weight:500;font-size:15px;box-shadow:0 8px 28px var(--shadow);z-index:20}
+
+.dots::after{content:"…";display:inline-block;margin-left:1px;animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion: reduce){ .dots::after{animation:none} .btn{transition:none} }
+@media (max-width:380px){ .wordmark{display:none} .teams{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button class="brand" type="button" data-act="home" aria-label="Поймай волну — на главную">
+      <svg viewBox="0 0 40 24" aria-hidden="true"><path class="logo-face" d="M3 22 A17 17 0 0 1 37 22 Z"/><path class="logo-needle" d="M20 22 L27.5 9"/><circle class="logo-hub" cx="20" cy="22" r="2.6"/></svg>
+      <span class="wordmark">Поймай волну</span>
+    </button>
+    <div id="topRight" class="top-right"></div>
+  </header>
+
+  <main>
+    <section id="vHome" class="view">
+      <div class="hero">
+        <div class="eyebrow">Игра на чтение мыслей · от 2 игроков</div>
+        <h1>Поймай волну</h1>
+        <p class="lead">Экстрасенс видит, где на шкале спрятана цель, и даёт подсказку. Остальные ставят стрелку. Чем ближе к центру цели, тем больше очков.</p>
+      </div>
+      <figure class="demo">
+        <svg id="demoDial" class="dial" role="slider" aria-label="Стрелка на шкале" aria-valuemin="0" aria-valuemax="100"></svg>
+        <div class="spectrum"><div class="spec-l">← Холодное</div><div class="spec-r">Горячее →</div></div>
+        <figcaption class="demo-cap"><span>Подсказка: <b>«Чай»</b>. Потяните стрелку.</span><span id="demoScore" class="demo-score">3 очка</span></figcaption>
+      </figure>
+      <ol class="steps">
+        <li><span>Экстрасенс крутит диск. Под шторкой появляется цель с зонами на 2, 3 и 4 очка — её видит только он.</span></li>
+        <li><span>Он выбирает шкалу из двух крайностей и даёт подсказку, которая указывает на место цели.</span></li>
+        <li><span>Остальные спорят и ставят стрелку туда, куда, по их мнению, ведёт подсказка.</span></li>
+        <li><span>Шторка открывается. Центр — 4 очка, рядом — 3 или 2, мимо — ноль.</span></li>
+      </ol>
+      <div class="panel panel-online"><h2>Играть онлайн</h2><div id="homeOnline" class="stack"></div></div>
+      <div class="panel"><h2>На одном телефоне</h2><div id="homeLocal" class="stack"></div></div>
+    </section>
+
+    <section id="vSetup" class="view" hidden></section>
+    <section id="vLobby" class="view" hidden></section>
+
+    <section id="vGame" class="view" hidden>
+      <div id="gHead" class="g-head"></div>
+      <svg id="gameDial" class="dial" role="slider" aria-label="Стрелка на шкале" aria-valuemin="0" aria-valuemax="100"></svg>
+      <div id="gSpectrum"></div>
+      <div id="gClue" class="clue" hidden></div>
+      <div id="gPanel" class="g-panel"></div>
+      <div id="gPlayers"></div>
+      <div id="gFoot" class="foot"></div>
+    </section>
+
+    <section id="vOver" class="view" hidden></section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+(() => {
+"use strict";
+
+/* ===== Конфиг Firebase: вставьте сюда firebaseConfig из консоли ===== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAca6O4wKSrpAc0_JVD0QR7J9wg0I44-1w",
+  authDomain: "poymay-volnu.firebaseapp.com",
+  databaseURL: "https://poymay-volnu-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "poymay-volnu",
+  storageBucket: "poymay-volnu.firebasestorage.app",
+  messagingSenderId: "111831908199",
+  appId: "1:111831908199:web:5cf4e98ed1c7765431f9c2"
+};
+
+/* ---------------- Шкалы ---------------- */
+const CARDS = [
+  ["Холодное","Горячее"],["Бесполезное изобретение","Полезное изобретение"],["Недооценённое","Переоценённое"],
+  ["Злодей","Герой"],["Плохой фильм","Отличный фильм"],["Мягкое","Твёрдое"],["Тихое","Громкое"],
+  ["Крошечное","Огромное"],["Медленное","Быстрое"],["Безопасное","Опасное"],["Старомодное","Модное"],
+  ["Для детей","Для взрослых"],["Грустная песня","Весёлая песня"],["Полезная еда","Вредная еда"],
+  ["Нормальное","Странное"],["Легко","Сложно"],["Дешёвое","Дорогое"],["Скучное","Захватывающее"],
+  ["Встречается редко","Встречается везде"],["Некрасивое","Красивое"],["Пахнет ужасно","Пахнет приятно"],
+  ["Невкусное","Вкусное"],["Временное","Вечное"],["Простительно","Непростительно"],["Тёмное","Светлое"],
+  ["Лёгкое","Тяжёлое"],["Для интроверта","Для экстраверта"],["Сухое","Мокрое"],["Плохой подарок","Отличный подарок"],
+  ["Неромантичное","Романтичное"],["Отстой","Круто"],["Лучше в одиночку","Лучше с друзьями"],
+  ["Бесполезный навык","Полезный навык"],["Милое животное","Страшное животное"],["Утреннее","Ночное"],
+  ["Будничное","Праздничное"],["Деревенское","Городское"],["Реальное","Вымышленное"],["Научное","Магическое"],
+  ["Плохая идея","Хорошая идея"],["Для бедных","Для богатых"],["Устаревшее","Футуристичное"],
+  ["Расслабляет","Напрягает"],["Можно при бабушке","Нельзя при бабушке"],["Хрупкое","Прочное"],
+  ["Лёгкая работа","Тяжёлая работа"],["Скучная профессия","Интересная профессия"],
+  ["Бесполезная суперсила","Крутая суперсила"],["Плохой совет","Хороший совет"],["Неважное","Важное"],
+  ["Худший овощ","Лучший овощ"],["Худшая начинка для пиццы","Лучшая начинка для пиццы"],
+  ["Худший праздник","Лучший праздник"],["Плохая кличка для собаки","Хорошая кличка для собаки"],
+  ["Скучно смотреть","Интересно смотреть"],["Легко сделать дома","Только в ресторане"],["Глупое","Умное"],
+  ["Злое","Доброе"],["Трусливое","Смелое"],["Скучный город","Интересный город"],["Лучше летом","Лучше зимой"],
+  ["Грязное","Чистое"],["Вредная привычка","Полезная привычка"],["Неудобное","Удобное"],
+  ["Глупый вопрос","Гениальный вопрос"],["Классика","Новинка"],["Некрасивое слово","Красивое слово"],
+  ["Нужно каждый день","Нужно раз в жизни"],["Нравится всем","Нравится немногим"],
+  ["Мечта ребёнка","Мечта взрослого"],["Сладкое","Солёное"],["Жидкое","Твёрдое"],["Пресное","Острое"],
+  ["Ничего не стоит","Бесценное"],["Легко потерять","Невозможно потерять"],
+  ["Ужасное первое свидание","Идеальное первое свидание"],["Стыдно признаться","Не стыдно признаться"],
+  ["Не переживёт апокалипсис","Переживёт апокалипсис"],["Нужен талант","Нужно упорство"],
+  ["Легко произнести","Сложно произнести"],["Кошки ненавидят","Кошки обожают"],["Терпеть не могу","Обожаю"],
+  ["Безобидное","Агрессивное"],["Натуральное","Искусственное"],["Плохо для караоке","Идеально для караоке"],
+  ["Холодный цвет","Тёплый цвет"],["Сделано руками","Сделано машиной"],
+  ["Почти не занимает места","Занимает много места"],["Ужасный завтрак","Идеальный завтрак"],
+  ["Звучит глупо","Звучит умно"],["Для понедельника","Для пятницы"],["Для бабушек","Для подростков"],
+  ["Совсем не новогоднее","Очень новогоднее"],["Ужасный питомец","Идеальный питомец"],
+  ["Безвкусица","Шедевр стиля"],["Пустая трата денег","Отличная покупка"],["Простой рецепт","Сложный рецепт"],
+  ["Успокаивает","Бесит"],["Невинная ложь","Серьёзная ложь"],["Мелкая неприятность","Катастрофа"],
+  ["Умеет каждый","Умеют единицы"],["Больше похоже на кота","Больше похоже на собаку"],
+  ["Убивает вечеринку","Спасает вечеринку"],["Для молодых","Для пожилых"],["Неэтичное","Этичное"],
+  ["Предсказуемое","Неожиданное"],["Официальное","Неформальное"],["Неприятно на ощупь","Приятно на ощупь"],
+  ["Быстро надоедает","Никогда не надоедает"],["Бесполезная вещь в доме","Незаменимая вещь в доме"],
+  ["Плохое оправдание","Убедительное оправдание"],["Все знают","Мало кто знает"],
+  ["Совсем не спорт","Настоящий спорт"],["Точно не суп","Точно суп"],["Точно не бутерброд","Точно бутерброд"],
+  ["Быстро портится","Хранится вечно"],["Овощ","Фрукт"],["Плохой фильм для свидания","Хороший фильм для свидания"],
+  ["Неуютное","Уютное"],["Легко нарисовать","Сложно нарисовать"],["Скорее растение","Скорее животное"],
+  ["Скорее еда","Скорее напиток"],["Несмешная шутка","Смешная шутка"],["Легко забыть","Невозможно забыть"],
+  ["Можно выучить за вечер","Учиться годами"],["Легко найти","Сложно найти"]
+];
+const TEAMS = ["Длинные волны", "Короткие волны"];
+const TEAM_SHORT = ["ДВ", "КВ"];
+const RULE_COOP = "Все играют вместе против шкалы. Экстрасенс меняется каждый раунд, очки складываются, в конце — звание команды.";
+const RULE_TEAMS = "Две команды ходят по очереди. Когда одна поставила стрелку, другая угадывает, где цель — левее или правее: это ещё +1 очко. Побеждает команда, первой набравшая 10. Попали в «4», но всё ещё отстаёте — ходите ещё раз.";
+
+/* ---------------- Утилиты ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rnd = n => Math.floor(Math.random() * n);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const r1 = v => Math.round(v * 10) / 10;
+const isObj = x => x !== null && typeof x === "object" && !Array.isArray(x);
+const clone = x => x == null ? x : JSON.parse(JSON.stringify(x));
+const reduced = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } };
+const store = {
+  get(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+function randId(n) { const a = "abcdefghijkmnpqrstuvwxyz23456789"; let s = ""; for (let i = 0; i < n; i++) s += a[rnd(a.length)]; return s; }
+function genCode() { const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s = ""; for (let i = 0; i < 4; i++) s += a[rnd(a.length)]; return s; }
+function plural(n, one, few, many) { const a = Math.abs(n) % 100, b = a % 10; if (a > 10 && a < 20) return many; if (b > 1 && b < 5) return few; if (b === 1) return one; return many; }
+const pts = n => `${n} ${plural(n, "очко", "очка", "очков")}`;
+function deepMerge(t, p) {
+  for (const k of Object.keys(p)) {
+    const v = p[k];
+    if (isObj(v) && isObj(t[k])) deepMerge(t[k], v);
+    else t[k] = clone(v);
+  }
+  return t;
+}
+const easeOut = k => 1 - Math.pow(1 - k, 3);
+const easeOutQuart = k => 1 - Math.pow(1 - k, 4);
+const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+function tween(ms, ease, fn, done) {
+  const t0 = performance.now(); let raf = 0, stopped = false;
+  const step = now => {
+    if (stopped) return;
+    const k = Math.min(1, (now - t0) / ms);
+    fn(ease(k));
+    if (k < 1) raf = requestAnimationFrame(step); else if (done) done();
+  };
+  raf = requestAnimationFrame(step);
+  return () => { stopped = true; cancelAnimationFrame(raf); };
+}
+
+/* ---------------- Шкала (SVG) ---------------- */
+function createDial(svg, uid) {
+  const NS = "http://www.w3.org/2000/svg";
+  const cx = 200, cy = 204, R = 172, RIM = 190;
+  svg.setAttribute("viewBox", "0 0 400 224");
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const f = n => Math.round(n * 100) / 100;
+  const P = (deg, r) => { const a = deg * Math.PI / 180; return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; };
+  const half = r => `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy} Z`;
+  const wedge = (h, r) => { const [x1, y1] = P(90 + h, r), [x2, y2] = P(90 - h, r); return `M ${cx} ${cy} L ${f(x1)} ${f(y1)} A ${r} ${r} 0 0 1 ${f(x2)} ${f(y2)} Z`; };
+  const setRot = (g, a) => g.setAttribute("transform", `rotate(${f(a)} ${cx} ${cy})`);
+
+  const defs = el("defs", {}, svg);
+  const clip = el("clipPath", { id: "dclip-" + uid }, defs);
+  el("path", { d: half(R) }, clip);
+
+  el("rect", { x: 6, y: cy - 2, width: 388, height: 18, rx: 5, class: "d-base" }, svg);
+  el("path", { d: half(RIM), class: "d-rim" }, svg);
+  el("path", { d: half(R), class: "d-face" }, svg);
+
+  const inner = el("g", { "clip-path": `url(#dclip-${uid})` }, svg);
+  const wheel = el("g", {}, inner);
+  for (let a = 0; a < 360; a += 15) { const [x, y] = P(a, R); el("line", { x1: cx, y1: cy, x2: f(x), y2: f(y), class: "d-spoke" }, wheel); }
+  el("path", { d: wedge(22.5, R), class: "d-b2" }, wheel);
+  el("path", { d: wedge(13.5, R), class: "d-b3" }, wheel);
+  el("path", { d: wedge(4.5, R), class: "d-b4" }, wheel);
+  [[18, "2"], [9, "3"], [0, "4"], [-9, "3"], [-18, "2"]].forEach(([o, t]) => {
+    const [x, y] = P(90 + o, R - 24);
+    const tx = el("text", { x: f(x), y: f(y), class: "d-num", "text-anchor": "middle", "dominant-baseline": "central", transform: `rotate(${-o} ${f(x)} ${f(y)})` }, wheel);
+    tx.textContent = t;
+  });
+
+  const shutter = el("g", {}, inner);
+  el("path", { d: half(R + 2), class: "d-shut" }, shutter);
+  for (let r = 44; r < R; r += 24) el("path", { d: `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`, class: "d-groove" }, shutter);
+  el("path", { d: `M ${cx - 66} ${cy - 92} q 11 -18 22 0 t 22 0 t 22 0 t 22 0 t 22 0 t 22 0`, class: "d-wave" }, shutter);
+
+  const ticks = el("g", {}, svg);
+  for (let i = 0; i <= 40; i++) {
+    const deg = 180 - i * 4.5, major = i % 4 === 0;
+    const [x1, y1] = P(deg, RIM - 3), [x2, y2] = P(deg, RIM - (major ? 14 : 8));
+    el("line", { x1: f(x1), y1: f(y1), x2: f(x2), y2: f(y2), class: major ? "d-tick d-tick-major" : "d-tick" }, ticks);
+  }
+
+  const needle = el("g", {}, svg);
+  el("line", { x1: cx, y1: cy, x2: cx, y2: cy - R + 8, class: "d-needle-shadow" }, needle);
+  el("line", { x1: cx, y1: cy, x2: cx, y2: cy - R + 8, class: "d-needle-line" }, needle);
+  el("circle", { cx, cy: cy - R + 16, r: 9, class: "d-needle-knob" }, needle);
+  el("circle", { cx, cy, r: 16, class: "d-hub" }, svg);
+  el("circle", { cx, cy, r: 5, class: "d-hub-dot" }, svg);
+
+  let shutA = 0, shutTo = 0, stopShut = null;
+  let targetV = null, spinning = false, stopSpin = null, hideAfterClose = false;
+  let needleV = 50, needleTo = null, needleOn = false, stopNeedle = null;
+  let live = false, dragging = false, h = {};
+  wheel.style.visibility = "hidden";
+  needle.style.visibility = "hidden";
+  setRot(shutter, 0);
+
+  function setShutter(open, animate = true) {
+    const to = open ? -180 : 0;
+    if (to === shutTo) return;
+    shutTo = to;
+    if (stopShut) { stopShut(); stopShut = null; }
+    shutter.style.visibility = "visible";
+    const from = shutA;
+    const finish = () => {
+      stopShut = null; shutA = to; setRot(shutter, to);
+      if (open) shutter.style.visibility = "hidden";
+      else if (hideAfterClose) { hideAfterClose = false; wheel.style.visibility = "hidden"; }
+    };
+    if (!animate || reduced()) { finish(); return; }
+    stopShut = tween(open ? 950 : 600, easeInOut, k => { shutA = from + (to - from) * k; setRot(shutter, shutA); }, finish);
+  }
+  function setTarget(v) {
+    if (spinning) return;
+    if (v == null) {
+      targetV = null;
+      if (shutTo === 0 && stopShut) hideAfterClose = true; else wheel.style.visibility = "hidden";
+      return;
+    }
+    hideAfterClose = false;
+    wheel.style.visibility = "visible";
+    if (v !== targetV) { targetV = v; setRot(wheel, (v - 50) * 1.8); }
+  }
+  function spinTo(v, done) {
+    if (stopSpin) stopSpin();
+    spinning = true; hideAfterClose = false; targetV = v;
+    wheel.style.visibility = "visible";
+    const fin = (v - 50) * 1.8, from = fin - (1080 + Math.random() * 240);
+    if (reduced()) { setRot(wheel, fin); spinning = false; if (done) done(); return; }
+    stopSpin = tween(3000, easeOutQuart, k => setRot(wheel, from + (fin - from) * k), () => { spinning = false; stopSpin = null; if (done) done(); });
+  }
+  function drawNeedle(v) { needleV = v; setRot(needle, (v - 50) * 1.8); svg.setAttribute("aria-valuenow", String(Math.round(v))); }
+  function setNeedle(v, smooth = true) {
+    if (v == null) { needleOn = false; needleTo = null; needle.style.visibility = "hidden"; return; }
+    if (dragging) return;
+    if (!needleOn) { needleOn = true; needle.style.visibility = "visible"; if (stopNeedle) stopNeedle(); needleTo = v; drawNeedle(v); return; }
+    if (v === needleTo) return;
+    needleTo = v;
+    if (stopNeedle) stopNeedle();
+    if (!smooth || reduced()) { drawNeedle(v); return; }
+    const from = needleV;
+    stopNeedle = tween(200, easeOut, k => drawNeedle(from + (v - from) * k), () => { stopNeedle = null; });
+  }
+  function valueFrom(e) {
+    const m = svg.getScreenCTM(); if (!m) return needleV;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    let deg = Math.atan2(cy - p.y, p.x - cx) * 180 / Math.PI;
+    if (deg < 0) deg = p.x < cx ? 180 : 0;
+    return clamp((180 - deg) / 1.8, 0, 100);
+  }
+  svg.addEventListener("pointerdown", e => {
+    if (!live) return;
+    e.preventDefault();
+    try { svg.setPointerCapture(e.pointerId); } catch {}
+    dragging = true;
+    if (stopNeedle) { stopNeedle(); stopNeedle = null; }
+    const v = valueFrom(e); drawNeedle(v); needleTo = v;
+    if (h.input) h.input(v);
+  });
+  svg.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const v = valueFrom(e); drawNeedle(v); needleTo = v;
+    if (h.input) h.input(v);
+  });
+  const end = () => { if (!dragging) return; dragging = false; if (h.commit) h.commit(needleV); };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+  svg.addEventListener("lostpointercapture", end);
+  svg.addEventListener("keydown", e => {
+    if (!live) return;
+    let d = 0;
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") d = -1;
+    else if (e.key === "ArrowRight" || e.key === "ArrowUp") d = 1;
+    else if (e.key === "Home") d = -100;
+    else if (e.key === "End") d = 100;
+    else return;
+    e.preventDefault();
+    if (e.shiftKey) d *= 5;
+    const v = clamp(needleV + d, 0, 100); drawNeedle(v); needleTo = v;
+    if (h.input) h.input(v);
+    if (h.commit) h.commit(v);
+  });
+  function setInteractive(on, handlers) {
+    live = !!on;
+    if (handlers) h = handlers;
+    svg.classList.toggle("is-live", live);
+    if (live) svg.setAttribute("tabindex", "0");
+    else { svg.removeAttribute("tabindex"); dragging = false; }
+  }
+  return { setShutter, setTarget, spinTo, setNeedle, setInteractive, get value() { return needleV; } };
+}
+
+/* ---------------- Игровая логика ---------------- */
+function pointsFor(target, needle) {
+  const d = Math.abs(target - needle);
+  return d <= 2.5 ? 4 : d <= 7.5 ? 3 : d <= 12.5 ? 2 : 0;
+}
+function blankGame(mode, rounds) {
+  return { mode, rounds, goal: 10, status: "lobby", round: null, score: { coop: 0, t: [0, 0] }, turns: [0, 0], used: [], history: [] };
+}
+function makeRound(n, psychic, team) {
+  return { n, psychic: psychic || null, team: team == null ? null : team, phase: "think", card: null, clue: "", needle: 50, side: null, target: null, pts: null, sidePts: null, again: false };
+}
+function sortedPlayers(players) {
+  return players.slice().sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0) || String(a.seat).localeCompare(String(b.seat)));
+}
+function teamMembers(players, t) { return sortedPlayers(players).filter(p => (p.team | 0) === t); }
+
+function startPatch(G, players, online) {
+  const patch = { status: "play", score: { coop: 0, t: [0, 0] }, turns: [0, 0], history: [] };
+  if (G.mode === "teams") {
+    const team = rnd(2);
+    const mem = online ? teamMembers(players, team) : [];
+    patch.round = makeRound(1, mem[0] ? mem[0].seat : null, team);
+    patch.turns = team === 0 ? [1, 0] : [0, 1];
+  } else {
+    const order = online ? sortedPlayers(players) : [];
+    patch.round = makeRound(1, order[0] ? order[0].seat : null, null);
+  }
+  return patch;
+}
+function gameWillEnd(G) {
+  if (G.mode === "teams") { const [a, b] = G.score.t; return (a >= G.goal || b >= G.goal) && a !== b; }
+  return G.round.n >= G.rounds;
+}
+function nextPatch(G, players, online) {
+  const r = G.round, n = r.n + 1;
+  if (gameWillEnd(G)) return { status: "over" };
+  if (G.mode === "teams") {
+    const team = r.again ? r.team : 1 - r.team;
+    const turns = (G.turns || [0, 0]).slice();
+    const mem = online ? teamMembers(players, team) : [];
+    const psychic = mem.length ? mem[turns[team] % mem.length].seat : null;
+    turns[team]++;
+    return { round: makeRound(n, psychic, team), turns };
+  }
+  const order = online ? sortedPlayers(players) : [];
+  const psychic = order.length ? order[r.n % order.length].seat : null;
+  return { round: makeRound(n, psychic, null) };
+}
+function revealPatch(G, target) {
+  const r = G.round;
+  const p = pointsFor(target, r.needle);
+  const entry = { n: r.n, card: r.card, clue: r.clue, target, needle: r.needle, pts: p, team: r.team, psychic: r.psychic, side: r.side, sidePts: 0 };
+  const patch = { round: { target, pts: p, sidePts: 0, again: false, phase: "result" } };
+  if (G.mode === "teams") {
+    const t = G.score.t.slice();
+    t[r.team] += p;
+    if (p < 4 && r.side) {
+      const ok = (r.side === "left" && target < r.needle) || (r.side === "right" && target > r.needle);
+      if (ok) { t[1 - r.team] += 1; entry.sidePts = 1; patch.round.sidePts = 1; }
+    }
+    patch.round.again = p === 4 && t[r.team] < t[1 - r.team];
+    patch.score = { coop: G.score.coop, t };
+  } else {
+    patch.score = { coop: G.score.coop + p, t: G.score.t.slice() };
+  }
+  patch.history = (G.history || []).concat([entry]).slice(-40);
+  return patch;
+}
+function drawPair(G, avoid) {
+  avoid = avoid || [];
+  const used = new Set([...(G.used || []), ...avoid]);
+  let pool = [...CARDS.keys()].filter(i => !used.has(i));
+  if (pool.length < 2) pool = [...CARDS.keys()].filter(i => !avoid.includes(i));
+  const a = pool.splice(rnd(pool.length), 1)[0];
+  const b = pool.splice(rnd(pool.length), 1)[0];
+  return [a, b];
+}
+function rating(pct) {
+  if (pct >= .85) return ["Телепаты", "Вы читаете мысли друг друга. Подозрительно."];
+  if (pct >= .65) return ["На одной волне", "Отличная настройка: сигнал чистый."];
+  if (pct >= .45) return ["Сигнал ловится", "Понимаете друг друга, хотя бывают помехи."];
+  if (pct >= .25) return ["Помехи в эфире", "Иногда совпадаете. Подкрутите антенну."];
+  return ["Связи нет", "Похоже, вы на разных частотах. Ещё партию?"];
+}
+
+/* ---------------- Состояние ---------------- */
+const S = {
+  caps: "wait", authErr: null, db: null, uid: null,
+  seat: null, nick: "",
+  mode: null, code: null, game: null, players: [], playersRaw: {}, rooms: [], roomsOn: false,
+  roomOk: false, online: new Set(), unsub: [],
+  local: null, secret: null, loadingSecret: null, secretChecked: null,
+  needle: null, lastDbNeedle: null, needleTimer: null, pendingNeedle: null, liveNeedle: null, liveTimer: null,
+  view: null, wake: null, hashCode: null,
+  ui: { peek: false, spinningKey: null, pair: null, pairKey: null, pick: 0, confirm: null },
+  drafts: { nick: "", code: "", clue: "" }
+};
+S.nick = store.get("wl.nick") || "";
+S.drafts.nick = S.nick;
+{
+  const h = String(location.hash || "").replace(/^#/, "").toUpperCase();
+  if (/^[A-Z0-9]{4}$/.test(h)) { S.hashCode = h; S.drafts.code = h; }
+}
+
+const G_ = () => S.mode === "online" ? S.game : S.mode === "local" ? S.local : null;
+const rKey = G => (S.mode === "online" ? S.code : "local") + ":" + (G && G.round ? G.round.n : 0);
+const myPlayer = () => S.players.find(p => p.seat === S.seat) || null;
+const nameOf = seat => { const p = S.players.find(x => x.seat === seat); return (p && p.name) || "Игрок"; };
+function currentNick() { return String(S.drafts.nick ?? S.nick).trim().slice(0, 24); }
+
+/* ---------------- Секрет экстрасенса ---------------- */
+function getSecret(G) { const k = rKey(G); return S.secret && S.secret.key === k ? S.secret.target : null; }
+function saveSecret(k, target) {
+  S.secret = { key: k, target };
+  store.set("wl.secret", S.secret);
+  if (S.mode === "online" && S.uid && S.db) {
+    S.db.ref(`secrets/${S.uid}/${S.code}`).set({ key: k, target, at: Date.now() }).catch(() => {});
+  }
+}
+async function loadSecret(G) {
+  const k = rKey(G);
+  if ((S.secret && S.secret.key === k) || S.loadingSecret === k || S.secretChecked === k) return;
+  const ls = store.get("wl.secret");
+  if (ls && ls.key === k) { S.secret = ls; S.secretChecked = k; render(); return; }
+  if (S.mode === "online" && S.uid && S.db) {
+    S.loadingSecret = k;
+    try {
+      const snap = await S.db.ref(`secrets/${S.uid}/${S.code}`).get();
+      const d = snap.exists() ? snap.val() : null;
+      if (d && d.key === k && typeof d.target === "number") S.secret = { key: k, target: d.target };
+    } catch {}
+    S.loadingSecret = null;
+  }
+  S.secretChecked = k;
+  render();
+}
+
+/* ---------------- Запись хода ---------------- */
+let writeQueue = Promise.resolve();
+function writeErr(e) {
+  const m = String((e && (e.code || e.message)) || "").toLowerCase();
+  if (m.includes("permission")) return "Нет доступа к базе. Проверьте правила Realtime Database в консоли Firebase.";
+  return "Не удалось сохранить ход. Проверьте интернет и попробуйте ещё раз.";
+}
+/* Превращает {round:{needle:5}} в {"round/needle":5}: так Firebase меняет только нужные поля. */
+function flatten(obj, prefix, out) {
+  for (const k of Object.keys(obj)) {
+    const v = obj[k], p = prefix ? prefix + "/" + k : k;
+    if (isObj(v) && Object.keys(v).length) flatten(v, p, out);
+    else if (Array.isArray(v)) out[p] = v.length ? v : null;
+    else if (isObj(v)) out[p] = null;
+    else out[p] = v === undefined ? null : v;
+  }
+  return out;
+}
+function commit(patch) {
+  if (S.mode === "local") { deepMerge(S.local, patch); saveLocal(); render(); return Promise.resolve(); }
+  if (S.mode !== "online" || !S.db || !S.code) return Promise.resolve();
+  const code = S.code, now = Date.now(), upd = {};
+  const flat = flatten(clone(patch), "", {});
+  for (const p of Object.keys(flat)) upd[`rooms/${code}/game/${p}`] = flat[p];
+  upd[`rooms/${code}/game/updatedAt`] = now;
+  upd[`lobby/${code}/updatedAt`] = now;
+  if (patch.status) upd[`lobby/${code}/status`] = patch.status;
+  writeQueue = writeQueue.then(() => S.db.ref().update(upd)).catch(e => toast(writeErr(e)));
+  return writeQueue;
+}
+function saveLocal() { if (S.local) store.set("wl.local", S.local); }
+function queueNeedleWrite(v) {
+  S.pendingNeedle = v;
+  clearTimeout(S.needleTimer);
+  S.needleTimer = setTimeout(() => {
+    S.needleTimer = null;
+    const G = S.game;
+    if (S.mode !== "online" || !G || !G.round || G.round.phase !== "guess") return;
+    commit({ round: { needle: S.pendingNeedle } });
+  }, 220);
+}
+/* Живая стрелка: пока игрок тянет, остальные видят движение (до ~12 обновлений в секунду). */
+function pushLiveNeedle(n, v) {
+  S.liveNeedle = { n, v: r1(v), by: S.uid };
+  if (S.liveTimer) return;
+  S.liveTimer = setTimeout(() => {
+    S.liveTimer = null;
+    if (S.mode === "online" && S.db && S.code && S.liveNeedle) S.db.ref(`rooms/${S.code}/needle`).set(S.liveNeedle).catch(() => {});
+  }, 80);
+}
+function displayedNeedle(G) {
+  const r = G.round;
+  if (S.mode === "online" && r.phase === "guess" && S.needle && S.needle.n === r.n) return S.needle.v;
+  return r.needle;
+}
+
+/* ---------------- Онлайн-комнаты (Firebase) ---------------- */
+async function initFirebase() {
+  const fb = window.firebase;
+  if (!FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.databaseURL) { S.caps = "noconfig"; render(); return; }
+  if (!fb || typeof fb.initializeApp !== "function") { S.caps = "offline"; render(); return; }
+  try {
+    if (!fb.apps.length) fb.initializeApp(FIREBASE_CONFIG);
+    S.db = fb.database();
+    const auth = fb.auth();
+    auth.onAuthStateChanged(u => {
+      if (!u || S.uid === u.uid) return;
+      S.uid = u.uid; S.seat = u.uid; S.caps = "ok";
+      subscribeRooms();
+      const saved = store.get("wl.room");
+      if (saved && !S.mode) resumeRoom(saved);
+      render();
+    });
+    await auth.signInAnonymously();
+  } catch (e) {
+    console.error(e);
+    S.authErr = e && e.code;
+    if (S.caps !== "ok") { S.caps = "authfail"; render(); }
+  }
+}
+function subscribeRooms() {
+  if (S.roomsOn) return;
+  S.roomsOn = true;
+  S.db.ref("lobby").orderByChild("updatedAt").limitToLast(12).on("value", snap => {
+    const list = [];
+    snap.forEach(c => { list.push(Object.assign({ id: c.key }, c.val())); });
+    S.rooms = list.reverse();
+    if (!S.mode) render();
+  }, () => { S.rooms = []; });
+}
+async function resumeRoom(code) {
+  try {
+    const [g, p] = await Promise.all([S.db.ref(`rooms/${code}/game/status`).get(), S.db.ref(`rooms/${code}/players/${S.uid}/name`).get()]);
+    if (g.exists() && p.exists()) { if (!S.mode) enterRoom(code); }
+    else store.del("wl.room");
+  } catch {}
+}
+function needNick() {
+  const nick = currentNick();
+  if (!nick) { toast("Сначала введите имя"); const n = $("#homeNick"); if (n) n.focus(); return null; }
+  setNick(nick);
+  return nick;
+}
+async function createRoom() {
+  if (S.caps !== "ok") return;
+  const nick = needNick(); if (!nick) return;
+  try {
+    let code = genCode();
+    for (let i = 0; i < 5; i++) { const s = await S.db.ref(`rooms/${code}/game/status`).get(); if (!s.exists()) break; code = genCode(); }
+    const now = Date.now();
+    const G = blankGame("coop", 7);
+    Object.assign(G, { code, hostNick: nick, host: S.uid, createdAt: now, updatedAt: now });
+    await S.db.ref().update({
+      [`rooms/${code}/game`]: clone(G),
+      [`lobby/${code}`]: { code, hostNick: nick, status: "lobby", updatedAt: now }
+    });
+    await joinRoom(code);
+  } catch (e) { toast(writeErr(e)); }
+}
+async function joinRoom(code) {
+  code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length !== 4) { toast("Код комнаты — это 4 символа"); return; }
+  if (S.caps !== "ok") { toast("Нет связи с сервером игры"); return; }
+  const nick = needNick(); if (!nick) return;
+  try {
+    const gs = await S.db.ref(`rooms/${code}/game`).get();
+    if (!gs.exists()) { toast(`Комнаты ${code} нет. Проверьте код.`); return; }
+    const G = gs.val();
+    const me = S.db.ref(`rooms/${code}/players/${S.uid}`);
+    const ps = await me.get();
+    const cur = ps.exists() ? ps.val() : null;
+    if (!cur || !cur.name) await me.update({ name: nick, joinedAt: Date.now() });
+    else if (cur.name !== nick) await me.update({ name: nick });
+    const teams = G.teams || {};
+    if (teams[S.uid] == null) {
+      const c = [0, 0];
+      Object.keys(teams).forEach(k => { c[teams[k] === 1 ? 1 : 0]++; });
+      await S.db.ref(`rooms/${code}/game/teams/${S.uid}`).set(c[0] <= c[1] ? 0 : 1);
+    }
+    if (S.hashCode) { S.hashCode = null; try { history.replaceState(null, "", location.pathname + location.search); } catch {} }
+    enterRoom(code);
+  } catch (e) { toast(writeErr(e)); }
+}
+function enterRoom(code) {
+  leaveSubs();
+  Object.assign(S, { mode: "online", code, game: null, players: [], playersRaw: {}, needle: null, lastDbNeedle: null, online: new Set(), roomOk: true });
+  resetRoundUI();
+  store.set("wl.room", code);
+  const base = S.db.ref("rooms/" + code);
+  const listen = (ref, cb) => {
+    const fn = ref.on("value", cb, err => { console.error(err); toast("Связь с комнатой потеряна. Обновите страницу."); });
+    S.unsub.push(() => ref.off("value", fn));
+  };
+  listen(base.child("game"), snap => {
+    if (S.code !== code) return;
+    const v = snap.val();
+    if (!v) { toast("Этой комнаты больше нет"); exitOnline(); return; }
+    onGame(normGame(v));
+  });
+  listen(base.child("players"), snap => {
+    if (S.code !== code) return;
+    S.playersRaw = snap.val() || {};
+    buildPlayers();
+    render();
+  });
+  listen(base.child("needle"), snap => {
+    const v = snap.val(), r = S.game && S.game.round;
+    if (S.code !== code || !v || v.by === S.uid || !r || r.phase !== "guess" || v.n !== r.n || typeof v.v !== "number") return;
+    S.needle = { n: r.n, v: clamp(v.v, 0, 100) };
+    render();
+  });
+  const onlineRef = base.child(`players/${S.uid}/online`);
+  const conn = S.db.ref(".info/connected");
+  const cfn = conn.on("value", s => {
+    if (s.val() !== true || S.code !== code) return;
+    onlineRef.onDisconnect().set(false).then(() => onlineRef.set(true)).catch(() => {});
+  });
+  S.unsub.push(() => { conn.off("value", cfn); onlineRef.onDisconnect().cancel().catch(() => {}); });
+  render();
+}
+const ROUND_DEFAULTS = { psychic: null, team: null, card: null, clue: "", needle: 50, side: null, target: null, pts: null, sidePts: null, again: false };
+function arr(x) {
+  if (Array.isArray(x)) return x;
+  if (x && typeof x === "object") return Object.keys(x).sort((a, b) => a - b).map(k => x[k]);
+  return [];
+}
+/* Firebase не хранит пустые массивы и null — возвращаем игре привычную форму. */
+function normGame(v) {
+  const G = Object.assign({ mode: "coop", rounds: 7, goal: 10, status: "lobby" }, v);
+  const sc = v.score || {}, t = arr(sc.t), tu = arr(v.turns);
+  G.score = { coop: sc.coop || 0, t: [t[0] || 0, t[1] || 0] };
+  G.turns = [tu[0] || 0, tu[1] || 0];
+  G.used = arr(v.used);
+  G.history = arr(v.history).filter(Boolean);
+  G.teams = v.teams || {};
+  G.round = v.round ? Object.assign({}, ROUND_DEFAULTS, v.round) : null;
+  return G;
+}
+function buildPlayers() {
+  const teams = (S.game && S.game.teams) || {}, raw = S.playersRaw || {};
+  S.players = Object.keys(raw).filter(k => raw[k] && raw[k].name).map(k => ({
+    seat: k, name: String(raw[k].name).slice(0, 24), joinedAt: raw[k].joinedAt || 0,
+    team: teams[k] === 1 ? 1 : 0, online: raw[k].online === true
+  }));
+  S.online = new Set(S.players.filter(p => p.online).map(p => p.seat));
+}
+function onGame(G) {
+  const prev = S.game;
+  S.game = G;
+  buildPlayers();
+  const r = G.round;
+  if (r && (!S.lastDbNeedle || S.lastDbNeedle.n !== r.n || S.lastDbNeedle.v !== r.needle)) {
+    S.lastDbNeedle = { n: r.n, v: r.needle };
+    S.needle = { n: r.n, v: r.needle };
+  }
+  if (!prev || !prev.round || !r || prev.round.n !== r.n || prev.status !== G.status) resetRoundUI();
+  render();
+}
+function leaveSubs() {
+  S.unsub.forEach(u => { try { u(); } catch {} });
+  S.unsub = [];
+  S.roomOk = false;
+  clearTimeout(S.liveTimer); S.liveTimer = null;
+  clearTimeout(S.needleTimer); S.needleTimer = null;
+}
+function exitOnline() {
+  leaveSubs();
+  Object.assign(S, { mode: null, code: null, game: null, players: [], playersRaw: {} });
+  store.del("wl.room");
+  render();
+}
+async function leaveRoom() {
+  const code = S.code, uid = S.uid;
+  leaveSubs();
+  try { await S.db.ref().update({ [`rooms/${code}/players/${uid}`]: null, [`rooms/${code}/game/teams/${uid}`]: null }); } catch {}
+  exitOnline();
+}
+function setNick(nick) { S.nick = nick; S.drafts.nick = nick; store.set("wl.nick", nick); }
+function roomLink(code) {
+  if (!/^https?:$/.test(location.protocol)) return "";
+  return location.origin + location.pathname + "#" + code;
+}
+function copyText(text, okMsg) {
+  try { navigator.clipboard.writeText(text).then(() => toast(okMsg), () => toast(text)); }
+  catch { toast(text); }
+}
+
+/* ---------------- Действия ---------------- */
+function resetRoundUI() { S.ui.peek = false; S.ui.pair = null; S.ui.pairKey = null; S.ui.pick = 0; S.ui.confirm = null; S.drafts.clue = ""; }
+function ensurePair(G) {
+  const k = rKey(G);
+  if (S.ui.pairKey !== k || !S.ui.pair) { S.ui.pair = drawPair(G); S.ui.pairKey = k; S.ui.pick = 0; S.drafts.clue = ""; }
+}
+let confirmTimer = null;
+function confirmable(key, fn) {
+  if (S.ui.confirm === key) { S.ui.confirm = null; clearTimeout(confirmTimer); fn(); return; }
+  S.ui.confirm = key;
+  clearTimeout(confirmTimer);
+  confirmTimer = setTimeout(() => { S.ui.confirm = null; render(); }, 3500);
+  render();
+}
+const confirmLabel = (key, label) => S.ui.confirm === key ? "Точно? Нажмите ещё раз" : label;
+
+const ACT = {
+  home() { if (S.mode === "local") { S.mode = null; render(); } else if (!S.mode) { window.scrollTo(0, 0); } },
+  create() { createRoom(); },
+  join() { joinRoom(S.drafts.code); },
+  joinRoom(arg) { joinRoom(arg); },
+  local() {
+    S.mode = "local"; S.local = blankGame("coop", 7);
+    S.secret = null; store.del("wl.secret"); resetRoundUI(); saveLocal(); render();
+  },
+  localResume() {
+    const g = store.get("wl.local");
+    if (!g) return ACT.local();
+    S.mode = "local"; S.local = g;
+    const s = store.get("wl.secret"); if (s) S.secret = s;
+    resetRoundUI(); render();
+  },
+  setMode(arg) { const G = G_(); if (G && G.status === "lobby" && G.mode !== arg) commit({ mode: arg }); },
+  setRounds(arg) { const G = G_(); if (G && G.status === "lobby") commit({ rounds: +arg }); },
+  start() {
+    const G = G_(); if (!G || G.status !== "lobby") return;
+    const online = S.mode === "online";
+    if (online) {
+      if (G.mode === "teams" && (teamMembers(S.players, 0).length < 2 || teamMembers(S.players, 1).length < 2)) return toast("В каждой команде нужно минимум 2 игрока");
+      if (G.mode !== "teams" && S.players.length < 2) return toast("Нужно минимум 2 игрока");
+    } else { S.secret = null; store.del("wl.secret"); }
+    resetRoundUI();
+    commit(startPatch(G, S.players, online));
+  },
+  async switchTeam() {
+    const me = myPlayer(); if (!me) return;
+    try { await S.db.ref(`rooms/${S.code}/game/teams/${S.uid}`).set(me.team === 1 ? 0 : 1); } catch (e) { toast(writeErr(e)); }
+  },
+  shuffle() {
+    const list = S.players.slice();
+    for (let i = list.length - 1; i > 0; i--) { const j = rnd(i + 1); [list[i], list[j]] = [list[j], list[i]]; }
+    const teams = {};
+    list.forEach((p, i) => { teams[p.seat] = i % 2; });
+    commit({ teams }).then(() => toast("Команды перемешаны"));
+  },
+  async saveNick() {
+    const nick = currentNick();
+    if (!nick) return toast("Имя не может быть пустым");
+    setNick(nick);
+    if (S.mode === "online" && S.code) {
+      try { await S.db.ref(`rooms/${S.code}/players/${S.uid}/name`).set(nick); toast("Имя сохранено"); } catch (e) { toast(writeErr(e)); }
+    }
+  },
+  copyCode() { copyText(S.code, "Код скопирован"); },
+  share() {
+    const link = roomLink(S.code);
+    if (!link) return copyText(S.code, "Код скопирован");
+    const text = `Заходи в «Поймай волну», комната ${S.code}`;
+    if (navigator.share) navigator.share({ title: "Поймай волну", text, url: link }).catch(() => {});
+    else copyText(link, "Ссылка скопирована — отправьте её друзьям");
+  },
+  peek() { S.ui.peek = true; render(); },
+  spin() {
+    const G = G_(); if (!G || !G.round || G.round.phase !== "think") return;
+    const k = rKey(G);
+    if (S.ui.spinningKey === k || getSecret(G) != null) return;
+    const target = r1(2 + Math.random() * 96);
+    saveSecret(k, target);
+    ensurePair(G);
+    S.ui.spinningKey = k;
+    dialG.setShutter(true, true);
+    dialG.spinTo(target, () => { S.ui.spinningKey = null; render(); });
+    render();
+  },
+  pick(arg) { S.ui.pick = +arg === 1 ? 1 : 0; render(); },
+  reroll() { const G = G_(); S.ui.pair = drawPair(G, S.ui.pair || []); S.ui.pick = 0; render(); },
+  submitClue() {
+    const G = G_(); if (!G || !G.round || G.round.phase !== "think" || !S.ui.pair) return;
+    if (getSecret(G) == null) return;
+    const clue = String(S.drafts.clue || "").trim().slice(0, 60);
+    if (S.mode === "online" && !clue) { toast("Напишите подсказку"); return; }
+    const card = S.ui.pair[S.ui.pick];
+    let used = (G.used || []).concat([card]);
+    if (used.length > CARDS.length - 4) used = [card];
+    S.drafts.clue = ""; S.ui.peek = false;
+    commit({ round: { card, clue, phase: "guess", needle: 50 }, used });
+  },
+  nudge(arg) {
+    const G = G_(); if (!G || G.round.phase !== "guess") return;
+    const v = clamp(r1(displayedNeedle(G) + (+arg)), 0, 100);
+    if (S.mode === "local") { G.round.needle = v; saveLocal(); }
+    else { S.needle = { n: G.round.n, v }; queueNeedleWrite(v); }
+    dialG.setNeedle(v, true);
+  },
+  lock() {
+    const G = G_(); if (!G) return; const r = G.round; if (r.phase !== "guess") return;
+    const v = r1(displayedNeedle(G));
+    let phase = G.mode === "teams" ? "side" : "reveal";
+    if (S.mode === "online" && G.mode === "teams" && teamMembers(S.players, 1 - r.team).length === 0) phase = "reveal";
+    clearTimeout(S.needleTimer); S.needleTimer = null;
+    clearTimeout(S.liveTimer); S.liveTimer = null;
+    commit({ round: { needle: v, phase } });
+  },
+  side(arg) { const G = G_(); if (!G || G.round.phase !== "side") return; commit({ round: { side: arg === "left" ? "left" : "right", phase: "reveal" } }); },
+  reveal() {
+    const G = G_(); if (!G || G.round.phase !== "reveal") return;
+    const t = getSecret(G);
+    if (t == null) { toast("Цель этого раунда не найдена"); return; }
+    commit(revealPatch(G, t));
+  },
+  next() {
+    const G = G_(); if (!G || !G.round || G.round.phase !== "result") return;
+    resetRoundUI();
+    commit(nextPatch(G, S.players, S.mode === "online"));
+  },
+  skip() {
+    confirmable("skip", () => {
+      const G = G_(); if (!G || !G.round) return;
+      const r = G.round;
+      const history = (G.history || []).concat([{ n: r.n, card: r.card, clue: r.clue, skipped: true, pts: 0, team: r.team, psychic: r.psychic, sidePts: 0 }]).slice(-40);
+      const np = nextPatch(Object.assign({}, G, { round: Object.assign({}, r, { again: false }) }), S.players, S.mode === "online");
+      resetRoundUI();
+      commit(Object.assign(np, { history }));
+    });
+  },
+  leave() {
+    confirmable("leave", () => { if (S.mode === "online") leaveRoom(); else { S.mode = null; render(); } });
+  },
+  again() {
+    if (S.mode === "local") { S.secret = null; store.del("wl.secret"); }
+    resetRoundUI();
+    commit({ status: "lobby", round: null, score: { coop: 0, t: [0, 0] }, history: [], turns: [0, 0] });
+  },
+  menu() { if (S.mode === "online") exitOnlineKeepSeat(); else { S.mode = null; render(); } }
+};
+function exitOnlineKeepSeat() { exitOnline(); }
+
+/* ---------------- Отрисовка ---------------- */
+function setHTML(el, html) {
+  if (el._h === html) return false;
+  const a = document.activeElement;
+  let fid = null, s0 = null, s1 = null;
+  if (a && a.id && el.contains(a)) { fid = a.id; try { s0 = a.selectionStart; s1 = a.selectionEnd; } catch {} }
+  el.innerHTML = html;
+  el._h = html;
+  for (const inp of el.querySelectorAll("input[data-draft]")) { const v = S.drafts[inp.dataset.draft]; if (v != null) inp.value = v; }
+  if (fid) {
+    const n = document.getElementById(fid);
+    if (n) { try { n.focus({ preventScroll: true }); if (s0 != null) n.setSelectionRange(s0, s1); } catch {} }
+  }
+  return true;
+}
+function show(view) {
+  for (const id of ["vHome", "vSetup", "vLobby", "vGame", "vOver"]) $("#" + id).hidden = id !== view;
+  if (S.view !== view) { S.view = view; window.scrollTo(0, 0); keepAwake(view === "vGame"); }
+}
+const msg = html => `<p class="msg">${html}</p>`;
+const segBtn = (act, arg, label, on) => `<button type="button" data-act="${act}" data-arg="${esc(arg)}" aria-pressed="${on ? "true" : "false"}">${esc(label)}</button>`;
+
+function render() {
+  try {
+    const G = G_();
+    if (S.mode === "online") {
+      if (!G) { show("vLobby"); setHTML($("#vLobby"), msg(`Подключаемся к комнате <b>${esc(S.code)}</b><span class="dots"></span>`)); }
+      else if (G.status === "over") renderOver();
+      else if (G.status === "play" && G.round) renderGame();
+      else renderLobby();
+    } else if (S.mode === "local" && G) {
+      if (G.status === "lobby") renderSetup();
+      else if (G.status === "over") renderOver();
+      else renderGame();
+    } else renderHome();
+    renderTop();
+  } catch (err) { console.error(err); }
+}
+
+function renderTop() {
+  const G = G_();
+  let html = "";
+  if (G && G.round && G.status !== "lobby") html = scoreHTML(G);
+  else if (S.mode === "online" && S.code) html = `<span class="chip">${esc(S.code)}</span>`;
+  setHTML($("#topRight"), html);
+}
+function scoreHTML(G) {
+  if (G.mode === "teams") {
+    const a = G.round ? G.round.team : null;
+    return [0, 1].map(t => `<span class="chip t${t}${a === t && G.status === "play" ? " is-active" : ""}" title="${TEAMS[t]}"><span class="tdot"></span>${TEAM_SHORT[t]} <b>${G.score.t[t]}</b></span>`).join("");
+  }
+  return `<span class="chip"><b>${G.score.coop}</b> ${plural(G.score.coop, "очко", "очка", "очков")}</span><span class="chip">${Math.min(G.round ? G.round.n : 1, G.rounds)}/${G.rounds}</span>`;
+}
+
+/* Главная */
+function renderHome() {
+  show("vHome");
+  let online;
+  $("#vHome").classList.toggle("invited", !!S.hashCode && S.caps === "ok");
+  if (S.caps === "wait") online = msg(`Подключаемся к серверу игры<span class="dots"></span>`);
+  else if (S.caps === "noconfig") online = msg("Онлайн ещё не настроен: в файл игры нужно вставить конфиг Firebase. Пока можно играть на одном телефоне.");
+  else if (S.caps === "offline") online = msg("Не удалось загрузить Firebase. Проверьте интернет и обновите страницу. Пока можно играть на одном телефоне.");
+  else if (S.caps === "authfail") online = msg(S.authErr === "auth/operation-not-allowed"
+    ? "В проекте Firebase выключен анонимный вход. Включите его: Authentication → Способ входа → Анонимный."
+    : "Не удалось подключиться к серверу игры. Проверьте интернет и обновите страницу.");
+  else online = `
+    ${S.hashCode ? msg(`Вас позвали в комнату <b>${esc(S.hashCode)}</b>. Введите имя и входите.`) : ""}
+    <div class="field"><label for="homeNick">Ваше имя</label><input id="homeNick" data-draft="nick" type="text" maxlength="24" autocomplete="nickname" placeholder="Как вас называть в игре"></div>
+    ${S.hashCode
+      ? `<button class="btn btn-primary btn-block" type="button" data-act="joinRoom" data-arg="${esc(S.hashCode)}">Войти в комнату ${esc(S.hashCode)}</button><button class="btn btn-block" type="button" data-act="create">Создать свою комнату</button>`
+      : `<button class="btn btn-primary btn-block" type="button" data-act="create">Создать комнату</button>`}
+    <div class="field"><label for="codeInput">Или войдите по коду</label>
+      <div class="row"><input id="codeInput" class="code-input" data-draft="code" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД"><button class="btn" type="button" data-act="join">Войти</button></div>
+    </div>
+    ${roomsHTML()}`;
+  setHTML($("#homeOnline"), online);
+  const saved = store.get("wl.local");
+  const local = saved && saved.status === "play"
+    ? `${msg(`Есть незаконченная партия: раунд ${saved.round ? saved.round.n : 1}.`)}<div class="row"><button class="btn btn-primary" type="button" data-act="localResume">Продолжить</button><button class="btn" type="button" data-act="local">Новая партия</button></div>`
+    : `${msg("Все сидят рядом, телефон передают по кругу. Подходит для двоих и для компании.")}<button class="btn btn-block" type="button" data-act="local">Играть на одном телефоне</button>`;
+  setHTML($("#homeLocal"), local);
+}
+function roomsHTML() {
+  const now = Date.now();
+  const list = S.rooms.filter(g => now - (g.updatedAt || 0) < 12 * 3600e3);
+  if (!list.length) return `<p class="msg small">Открытых комнат пока нет. Создайте свою — друзья увидят её здесь.</p>`;
+  const st = { lobby: "ждут игроков", play: "идёт игра", over: "игра окончена" };
+  return `<div class="field"><span class="label">Открытые комнаты</span><div class="rooms">${list.map(g => {
+    const code = String(g.code || g.id);
+    return `<button class="room" type="button" data-act="joinRoom" data-arg="${esc(code)}"><span><b>${esc(g.hostNick || "Комната")}</b> <span class="msg small">· ${st[g.status] || ""}</span></span><code>${esc(code)}</code></button>`;
+  }).join("")}</div></div>`;
+}
+
+/* Настройка игры на одном телефоне */
+function renderSetup() {
+  show("vSetup");
+  const G = S.local, teams = G.mode === "teams";
+  setHTML($("#vSetup"), `
+    <div class="hero"><div class="eyebrow">Один телефон на всех</div><h1 class="h-sm">Игра за одним столом</h1></div>
+    <p class="lead">Телефон передают экстрасенсу: он смотрит цель и даёт подсказку. Потом телефон кладут в центр, и все вместе ставят стрелку.</p>
+    <div class="panel">
+      <h2>Режим</h2>
+      <div class="seg" role="group" aria-label="Режим">${segBtn("setMode", "coop", "Вместе", !teams)}${segBtn("setMode", "teams", "Две команды", teams)}</div>
+      ${msg(teams ? RULE_TEAMS : RULE_COOP)}
+      ${teams ? "" : `<div class="field"><span class="label">Сколько раундов</span><div class="seg" role="group" aria-label="Раундов">${[5, 7, 10].map(n => segBtn("setRounds", n, n, G.rounds === n)).join("")}</div></div>`}
+    </div>
+    <button class="btn btn-primary btn-block" type="button" data-act="start">Начать игру</button>
+    <button class="btn-quiet" type="button" data-act="menu">Назад</button>`);
+}
+
+/* Лобби комнаты */
+function plChip(p, G) {
+  const r = G && G.round;
+  const teamCls = G && G.mode === "teams" ? ` t${p.team | 0}` : "";
+  return `<span class="pl${teamCls}">${S.roomOk ? `<span class="on${S.online.has(p.seat) ? " is-on" : ""}" aria-hidden="true"></span>` : ""}<span class="nm">${esc(p.name || "Игрок")}</span>${p.seat === S.seat ? `<span class="tag">вы</span>` : ""}${r && G.status === "play" && r.psychic === p.seat ? `<span class="tag">экстрасенс</span>` : ""}</span>`;
+}
+function renderLobby() {
+  show("vLobby");
+  const G = S.game, teams = G.mode === "teams";
+  const players = sortedPlayers(S.players);
+  let canStart, why = "";
+  if (teams) { canStart = teamMembers(S.players, 0).length >= 2 && teamMembers(S.players, 1).length >= 2; if (!canStart) why = "В каждой команде нужно минимум 2 игрока."; }
+  else { canStart = players.length >= 2; if (!canStart) why = "Нужно минимум 2 игрока. Позовите кого-нибудь в комнату."; }
+  const playersBlock = teams
+    ? `<div class="teams">${[0, 1].map(t => { const mem = teamMembers(S.players, t); return `<div class="team t${t}"><div class="team-name"><span class="tdot"></span>${TEAMS[t]}</div>${mem.map(p => plChip(p, G)).join("") || `<span class="msg small">пока никого</span>`}</div>`; }).join("")}</div>
+       <div class="row"><button class="btn" type="button" data-act="switchTeam"${myPlayer() ? "" : " disabled"}>Сменить команду</button><button class="btn" type="button" data-act="shuffle">Перемешать</button></div>`
+    : `<div class="players">${players.map(p => plChip(p, G)).join("")}</div>`;
+  if (S.drafts.nick == null || S.drafts.nick === "") S.drafts.nick = (myPlayer() && myPlayer().name) || S.nick;
+  setHTML($("#vLobby"), `
+    <div class="lobby-head">
+      <div><div class="eyebrow">Код комнаты</div><div class="code">${esc(S.code)}</div></div>
+      <button class="btn" type="button" data-act="copyCode">Скопировать код</button>
+    </div>
+    <p class="lead">Отправьте друзьям ссылку — комната откроется у них сразу. Или пусть откроют игру и введут код.</p>
+    <button class="btn btn-block" type="button" data-act="share">Пригласить друзей</button>
+    <div class="panel">
+      <div class="field"><label for="lobbyNick">Ваше имя в игре</label>
+        <div class="row"><input id="lobbyNick" data-draft="nick" type="text" maxlength="24" autocomplete="nickname"><button class="btn" type="button" data-act="saveNick">Сохранить</button></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Режим</h2>
+      <div class="seg" role="group" aria-label="Режим">${segBtn("setMode", "coop", "Вместе", !teams)}${segBtn("setMode", "teams", "Две команды", teams)}</div>
+      ${msg(teams ? RULE_TEAMS : RULE_COOP)}
+      ${teams ? "" : `<div class="field"><span class="label">Сколько раундов</span><div class="seg" role="group" aria-label="Раундов">${[5, 7, 10].map(n => segBtn("setRounds", n, n, G.rounds === n)).join("")}</div></div>`}
+    </div>
+    <div class="panel">
+      <h2>Игроки · ${players.length}</h2>
+      ${playersBlock}
+    </div>
+    ${why ? msg(why) : ""}
+    <button class="btn btn-primary btn-block" type="button" data-act="start"${canStart ? "" : " disabled"}>Начать игру</button>
+    <button class="btn-quiet" type="button" data-act="leave">${confirmLabel("leave", "Выйти из комнаты")}</button>`);
+}
+
+/* Раунд */
+function roleOf(G) {
+  const r = G.round, me = myPlayer();
+  const psy = r.psychic === S.seat;
+  if (G.mode === "teams") {
+    const myTeam = me ? (me.team | 0) : -1;
+    return { psy, guess: !psy && myTeam === r.team, opp: myTeam >= 0 && myTeam !== r.team };
+  }
+  return { psy, guess: !psy && !!me, opp: false };
+}
+function spectrumHTML(card) {
+  if (card == null || !CARDS[card]) return `<div class="spectrum is-empty"><div class="spec-l">← ?</div><div class="spec-r">? →</div></div>`;
+  return `<div class="spectrum"><div class="spec-l">← ${esc(CARDS[card][0])}</div><div class="spec-r">${esc(CARDS[card][1])} →</div></div>`;
+}
+function renderGame() {
+  show("vGame");
+  const G = G_(), r = G.round, online = S.mode === "online", teams = G.mode === "teams";
+  const role = online ? roleOf(G) : null;
+  const k = rKey(G);
+  const isPsyView = online ? role.psy : (r.phase === "think" && S.ui.peek) || r.phase === "reveal";
+  if (isPsyView && getSecret(G) == null && S.secretChecked !== k) loadSecret(G);
+  const secret = getSecret(G);
+  const spinning = S.ui.spinningKey === k;
+
+  /* Голова раунда */
+  const head = `<div><div class="eyebrow">Раунд ${r.n}${!teams ? ` из ${G.rounds}` : ""}${teams ? ` · ход команды «${TEAMS[r.team]}»` : ""}</div></div>`
+    + (online ? `<div class="who">Экстрасенс: <b>${r.psychic === S.seat ? "вы" : esc(nameOf(r.psychic))}</b></div>` : "");
+  setHTML($("#gHead"), head);
+
+  /* Шкала */
+  let open = false, target = null, needleShow = r.phase !== "think", live = false;
+  if (r.phase === "result") { open = true; target = r.target; }
+  else if (online) {
+    if (role.psy && secret != null) { open = true; target = secret; }
+    live = r.phase === "guess" && role.guess;
+  } else {
+    if (r.phase === "think" && S.ui.peek && secret != null) { open = true; target = secret; }
+    live = r.phase === "guess";
+  }
+  if (spinning) open = true;
+  dialG.setShutter(open, true);
+  dialG.setTarget(target);
+  dialG.setNeedle(needleShow ? (r.phase === "guess" ? displayedNeedle(G) : r.needle) : null, true);
+  dialG.setInteractive(live);
+
+  /* Карточка-шкала */
+  let card = r.card;
+  const picking = r.phase === "think" && (online ? role.psy : S.ui.peek) && secret != null;
+  if (picking) { ensurePair(G); card = S.ui.pair[S.ui.pick]; }
+  setHTML($("#gSpectrum"), spectrumHTML(card));
+
+  /* Подсказка */
+  const clueEl = $("#gClue");
+  if (r.phase === "think") { clueEl.hidden = true; }
+  else {
+    clueEl.hidden = false;
+    clueEl.classList.toggle("is-quiet", !r.clue);
+    setHTML(clueEl, r.clue ? `<small>Подсказка</small>«${esc(r.clue)}»` : `<small>Подсказка</small>звучит вслух`);
+  }
+
+  /* Панель */
+  setHTML($("#gPanel"), panelHTML(G, role, secret, spinning));
+  updateClueBtn();
+
+  /* Игроки и меню */
+  setHTML($("#gPlayers"), online ? `<div class="players">${sortedPlayers(S.players).map(p => plChip(p, G)).join("")}</div>` : "");
+  setHTML($("#gFoot"), (r.phase !== "result" ? `<button class="btn-quiet" type="button" data-act="skip">${confirmLabel("skip", "Пропустить раунд")}</button>` : "")
+    + `<button class="btn-quiet" type="button" data-act="${online ? "leave" : "menu"}">${online ? confirmLabel("leave", "Выйти из комнаты") : "Выйти в меню"}</button>`);
+}
+function panelHTML(G, role, secret, spinning) {
+  const r = G.round, online = S.mode === "online", teams = G.mode === "teams";
+  const k = rKey(G);
+  if (r.phase === "think") {
+    const psy = online ? role.psy : S.ui.peek;
+    if (!psy) {
+      if (online) return msg(`<b>${esc(nameOf(r.psychic))}</b> крутит диск и придумывает подсказку<span class="dots"></span>`);
+      return msg(teams ? `Передайте телефон экстрасенсу команды <b>«${TEAMS[r.team]}»</b>. Остальные не смотрят на экран.` : "Передайте телефон тому, кто будет экстрасенсом в этом раунде. Остальные не смотрят на экран.")
+        + `<button class="btn btn-primary btn-block" type="button" data-act="peek">Я экстрасенс — показать</button>`;
+    }
+    if (secret == null) {
+      if (S.loadingSecret === k) return msg("Загружаем цель…");
+      return msg("Вы экстрасенс. Проверьте, что экран никто не видит, и крутите диск.")
+        + `<button class="btn btn-primary btn-block" type="button" data-act="spin">Крутануть диск</button>`;
+    }
+    if (spinning) return msg(`Диск крутится<span class="dots"></span>`);
+    const [a, b] = S.ui.pair;
+    return msg("Цель видна только вам. Выберите шкалу и придумайте подсказку: слово или фразу, которая укажет на это место между крайностями.")
+      + `<div class="opts" role="group" aria-label="Шкала">${[a, b].map((c, i) => `<button class="opt" type="button" data-act="pick" data-arg="${i}" aria-pressed="${S.ui.pick === i}"><span>${esc(CARDS[c][0])}</span><span class="arr">↔</span><span>${esc(CARDS[c][1])}</span></button>`).join("")}</div>
+      <button class="btn-quiet" type="button" data-act="reroll">Показать другие шкалы</button>
+      <div class="field"><label for="clueInput">Подсказка${online ? "" : " — или скажите её вслух"}</label><input id="clueInput" data-draft="clue" type="text" maxlength="60" autocomplete="off" placeholder="Например: чай"></div>
+      <button class="btn btn-primary btn-block" id="clueSubmit" type="button" data-act="submitClue">${online ? "Отправить подсказку" : "Готово — закрыть шторку"}</button>`;
+  }
+  if (r.phase === "guess") {
+    if (online && role.psy) return msg("Подсказка отправлена. Теперь держите лицо: команда двигает стрелку, а вы видите, куда она смотрит.");
+    if (online && !role.guess) return msg(teams ? `Отгадывает команда <b>«${TEAMS[r.team]}»</b>. Следите за стрелкой: потом вы решите, где цель — левее или правее.` : "Игроки двигают стрелку.");
+    return msg(online ? "Перетащите стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте." : (teams ? `Команда <b>«${TEAMS[r.team]}»</b> двигает стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте.` : "Двигайте стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте."))
+      + `<div class="row nudge"><button class="btn" type="button" data-act="nudge" data-arg="-1" aria-label="Стрелку чуть левее">‹</button><button class="btn btn-primary grow" type="button" data-act="lock">Фиксируем</button><button class="btn" type="button" data-act="nudge" data-arg="1" aria-label="Стрелку чуть правее">›</button></div>`;
+  }
+  if (r.phase === "side") {
+    const opp = TEAMS[1 - r.team];
+    if (online && !role.opp) return msg(`Команда <b>«${opp}»</b> решает, где цель: левее или правее стрелки<span class="dots"></span>`);
+    return msg(`${online ? "" : `Слово команде <b>«${opp}»</b>. `}Цель левее или правее стрелки? Угадаете — +1 очко, если соперники не попали в «4».`)
+      + `<div class="row"><button class="btn" type="button" data-act="side" data-arg="left">← Левее</button><button class="btn" type="button" data-act="side" data-arg="right">Правее →</button></div>`;
+  }
+  if (r.phase === "reveal") {
+    if (online && !role.psy) return msg(`Ждём, пока <b>${esc(nameOf(r.psychic))}</b> откроет шторку<span class="dots"></span>`);
+    if (secret == null) {
+      if (S.loadingSecret === k) return msg("Загружаем цель…");
+      return msg("Цель этого раунда не нашлась на этом устройстве — похоже, игру открыли с другого телефона.")
+        + `<button class="btn btn-block" type="button" data-act="skip">${confirmLabel("skip", "Пропустить раунд")}</button>`;
+    }
+    return msg(online ? "Выбор сделан. Открывайте!" : "Все готовы? Открываем шторку.")
+      + `<button class="btn btn-primary btn-block" type="button" data-act="reveal">Открыть шторку</button>`;
+  }
+  return resultHTML(G);
+}
+function resultHTML(G) {
+  const r = G.round, teams = G.mode === "teams";
+  const words = { 4: "Точно в цель!", 3: "Совсем рядом", 2: "Почти", 0: "Мимо" };
+  const end = gameWillEnd(G);
+  const lines = [];
+  if (teams) {
+    lines.push(r.pts ? `${pts(r.pts)} команде «${TEAMS[r.team]}»` : `Команда «${TEAMS[r.team]}» без очков`);
+    if (r.side) lines.push(r.sidePts ? `«${TEAMS[1 - r.team]}» угадали сторону: +1` : (r.pts === 4 ? "Попадание в «4» — соперникам очко не положено" : `«${TEAMS[1 - r.team]}» не угадали сторону`));
+    if (r.again && !end) lines.push(`«${TEAMS[r.team]}» отставали и попали в «4» — ходят ещё раз`);
+  } else {
+    lines.push(`Всего у команды ${pts(G.score.coop)}`);
+  }
+  return `<div class="result"><div class="pts${r.pts ? "" : " is-zero"}">${r.pts ? "+" + r.pts : "0"}</div><div><div class="res-title">${words[r.pts] || ""}</div>${lines.map(l => `<p class="msg">${l}</p>`).join("")}</div></div>
+    <button class="btn btn-primary btn-block" type="button" data-act="next">${end ? "Итоги игры" : "Следующий раунд"}</button>`;
+}
+function updateClueBtn() {
+  const b = $("#clueSubmit");
+  if (b && S.mode === "online") b.disabled = !String(S.drafts.clue || "").trim();
+}
+
+/* Итоги */
+function renderOver() {
+  show("vOver");
+  const G = G_(), teams = G.mode === "teams", online = S.mode === "online";
+  let head;
+  if (teams) {
+    const [a, b] = G.score.t, w = a > b ? 0 : 1;
+    head = `<div class="hero"><div class="eyebrow">Игра окончена</div><h1>Победили «${TEAMS[w]}»</h1><p class="big-score"><span class="t0">${a}</span> : <span class="t1">${b}</span></p></div>`;
+  } else {
+    const max = G.rounds * 4, [title, line] = rating(G.score.coop / max);
+    head = `<div class="hero"><div class="eyebrow">Игра окончена · ${G.score.coop} из ${max}</div><h1>${title}</h1><p class="lead">${line}</p></div>`;
+  }
+  const rows = (G.history || []).map(h => {
+    const card = h.card != null && CARDS[h.card] ? `${esc(CARDS[h.card][0])} ↔ ${esc(CARDS[h.card][1])}` : "—";
+    const sub = h.skipped ? "раунд пропущен" : (h.clue ? `«${esc(h.clue)}»` : "подсказка вслух");
+    const who = online && h.psychic ? ` · ${esc(nameOf(h.psychic))}` : (teams && h.team != null ? ` · ${TEAM_SHORT[h.team]}` : "");
+    const score = h.skipped ? "—" : `+${h.pts}${h.sidePts ? ` <span class="side-pt t${1 - h.team}">+1</span>` : ""}`;
+    return `<tr><td class="n">${h.n}</td><td>${card}<div class="msg small">${sub}${who}</div></td><td class="num">${score}</td></tr>`;
+  }).join("");
+  setHTML($("#vOver"), `${head}
+    ${rows ? `<div class="panel"><h2>Как шли раунды</h2><div class="tbl"><table class="hist"><thead><tr><th>#</th><th>Шкала и подсказка</th><th class="num">Очки</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : ""}
+    <button class="btn btn-primary btn-block" type="button" data-act="again">Сыграть ещё</button>
+    <button class="btn-quiet" type="button" data-act="${online ? "leave" : "menu"}">${online ? confirmLabel("leave", "Выйти из комнаты") : "В меню"}</button>`);
+}
+
+/* ---------------- Тосты, экран, события ---------------- */
+let toastTimer = null;
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 3400);
+}
+async function keepAwake(on) {
+  try {
+    if (on && !S.wake && navigator.wakeLock) {
+      S.wake = await navigator.wakeLock.request("screen");
+      S.wake.addEventListener("release", () => { S.wake = null; });
+    } else if (!on && S.wake) { const w = S.wake; S.wake = null; await w.release(); }
+  } catch { S.wake = null; }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.view === "vGame") keepAwake(true); });
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if (!b || b.disabled) return;
+  const fn = ACT[b.dataset.act];
+  if (fn) { e.preventDefault(); fn(b.dataset.arg, b); }
+});
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.draft) return;
+  let v = el.value;
+  if (el.dataset.draft === "code") {
+    const up = v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+    if (up !== v) el.value = up;
+    v = up;
+  }
+  S.drafts[el.dataset.draft] = v;
+  if (el.id === "clueInput") updateClueBtn();
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !e.target || e.target.tagName !== "INPUT") return;
+  const id = e.target.id;
+  if (id === "codeInput") ACT.join();
+  else if (id === "clueInput") ACT.submitClue();
+  else if (id === "lobbyNick") ACT.saveNick();
+  else if (id === "homeNick") ACT.create();
+});
+
+/* ---------------- Шкалы на странице ---------------- */
+const dialG = createDial($("#gameDial"), "game");
+dialG.setInteractive(false, {
+  input(v) {
+    const G = G_(); if (!G || !G.round || G.round.phase !== "guess") return;
+    if (S.mode === "local") G.round.needle = r1(v);
+    else { S.needle = { n: G.round.n, v }; pushLiveNeedle(G.round.n, v); }
+  },
+  commit(v) {
+    const G = G_(); if (!G || !G.round || G.round.phase !== "guess") return;
+    v = r1(v);
+    if (S.mode === "local") { G.round.needle = v; saveLocal(); }
+    else { S.needle = { n: G.round.n, v }; pushLiveNeedle(G.round.n, v); queueNeedleWrite(v); }
+  }
+});
+
+const demo = createDial($("#demoDial"), "demo");
+const DEMO_TARGET = 77;
+demo.setShutter(true, false);
+demo.setTarget(DEMO_TARGET);
+demo.setNeedle(71, false);
+const demoScore = v => { const p = pointsFor(DEMO_TARGET, v); $("#demoScore").textContent = p ? pts(p) : "0 очков — мимо"; };
+demo.setInteractive(true, { input: demoScore, commit: demoScore });
+
+/* ---------------- Запуск ---------------- */
+render();
+initFirebase();
+})();
+</script>
+</body>
+</html>
