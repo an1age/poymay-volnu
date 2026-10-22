@@ -206,7 +206,47 @@ input.code-input{font-family:var(--font-mono);font-weight:700;letter-spacing:.2e
 @keyframes blink{50%{opacity:.2}}
 @media (prefers-reduced-motion: reduce){ .dots::after{animation:none} .btn{transition:none} }
 @media (max-width:380px){ .wordmark{display:none} .teams{grid-template-columns:1fr} }
+/* Документ вне Claude */
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top, 0px);padding-bottom:env(safe-area-inset-bottom, 0px)}
+body{margin:0}
+img{max-width:100%}
+#vHome.invited .hero{order:-2}
+#vHome.invited .panel-online{order:-1}
+
+/* Счётчик раундов */
+.setting{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.stepper{display:inline-flex;align-items:center;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px}
+.stepper button{width:44px;height:40px;border:0;border-radius:9px;background:var(--surface);color:var(--ink);font:600 20px/1 var(--font-body);cursor:pointer;box-shadow:0 1px 3px var(--shadow)}
+.stepper button[disabled]{opacity:.4;cursor:not-allowed}
+.stepper output{min-width:48px;text-align:center;font:700 20px var(--font-mono);font-variant-numeric:tabular-nums}
+.mode-name{font-family:var(--font-display);font-weight:600;font-size:17px;margin:0}
+
+/* Фишки игроков */
+.cdot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1.5px var(--needle-edge)}
+.pl.is-off{opacity:.5}
+.pl .mk{font:700 13px var(--font-mono);color:var(--good)}
+.pl .sc{font:700 12px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink);padding-left:2px}
+.status{margin:0;font-size:14px;color:var(--muted)}
+.status b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pick-on{outline:3px solid var(--accent);outline-offset:1px}
+
+/* Своя шкала */
+.opt.opt-own{grid-template-columns:1fr;text-align:center}
+.opt.opt-own span:last-child{text-align:center}
+.custom{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.custom .field{min-width:0}
+
+/* Таблица игроков */
+.board{display:flex;flex-direction:column;gap:6px}
+.board-row{display:grid;grid-template-columns:22px 12px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:var(--surface)}
+.board-row .rank{font:700 13px var(--font-mono);color:var(--muted);text-align:right}
+.board-row .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.board-row .val{font:700 16px var(--font-mono);font-variant-numeric:tabular-nums}
+.board-row.is-me{box-shadow:inset 0 0 0 2px var(--accent)}
+.res-solo .board-row{background:var(--surface)}
 </style>
+
 </head>
 <body>
 <div class="app">
@@ -218,7 +258,7 @@ input.code-input{font-family:var(--font-mono);font-weight:700;letter-spacing:.2e
     <div id="topRight" class="top-right"></div>
   </header>
 
-  <main>
+    <main>
     <section id="vHome" class="view">
       <div class="hero">
         <div class="eyebrow">Игра на чтение мыслей · от 2 игроков</div>
@@ -256,9 +296,9 @@ input.code-input{font-family:var(--font-mono);font-weight:700;letter-spacing:.2e
     <section id="vOver" class="view" hidden></section>
   </main>
 
+
   <div id="toast" class="toast" role="status" hidden></div>
 </div>
-
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -266,7 +306,7 @@ input.code-input{font-family:var(--font-mono);font-weight:700;letter-spacing:.2e
 (() => {
 "use strict";
 
-/* ===== Конфиг Firebase: вставьте сюда firebaseConfig из консоли ===== */
+/* ===== Конфиг Firebase ===== */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAca6O4wKSrpAc0_JVD0QR7J9wg0I44-1w",
   authDomain: "poymay-volnu.firebaseapp.com",
@@ -277,7 +317,6 @@ const FIREBASE_CONFIG = {
   appId: "1:111831908199:web:5cf4e98ed1c7765431f9c2"
 };
 
-/* ---------------- Шкалы ---------------- */
 const CARDS = [
   ["Холодное","Горячее"],["Бесполезное изобретение","Полезное изобретение"],["Недооценённое","Переоценённое"],
   ["Злодей","Герой"],["Плохой фильм","Отличный фильм"],["Мягкое","Твёрдое"],["Тихое","Громкое"],
@@ -324,10 +363,21 @@ const CARDS = [
   ["Скорее еда","Скорее напиток"],["Несмешная шутка","Смешная шутка"],["Легко забыть","Невозможно забыть"],
   ["Можно выучить за вечер","Учиться годами"],["Легко найти","Сложно найти"]
 ];
+
 const TEAMS = ["Длинные волны", "Короткие волны"];
 const TEAM_SHORT = ["ДВ", "КВ"];
-const RULE_COOP = "Все играют вместе против шкалы. Экстрасенс меняется каждый раунд, очки складываются, в конце — звание команды.";
-const RULE_TEAMS = "Две команды ходят по очереди. Когда одна поставила стрелку, другая угадывает, где цель — левее или правее: это ещё +1 очко. Побеждает команда, первой набравшая 10. Попали в «4», но всё ещё отстаёте — ходите ещё раз.";
+const MODE_NAMES = { coop: "Вместе", teams: "Команды", solo: "Сам за себя" };
+const RULES = {
+  coop: "Все играют вместе против шкалы. Стрелку двигают сообща, а фиксируется она, когда все нажали «Согласен». Экстрасенс меняется каждый раунд, очки общие.",
+  teams: "Две команды ходят по очереди. Команда двигает стрелку и голосует «Согласен». Потом соперники договариваются, где цель: левее или правее стрелки — угадали, +1 очко. Побеждает команда, первой набравшая 10. Попали в «4», но всё ещё отстаёте — ходите ещё раз.",
+  solo: "У каждого своя стрелка, и её никто не видит до открытия шторки. Каждый получает очки за свою стрелку, а экстрасенс — +1 за каждого игрока, который попал в зону с очками."
+};
+const RULES_LOCAL = {
+  coop: "Все играют вместе против шкалы. Экстрасенс меняется каждый раунд, очки складываются, в конце — звание команды.",
+  teams: "Две команды ходят по очереди. Когда одна поставила стрелку, другая угадывает, где цель — левее или правее: это ещё +1 очко. Побеждает команда, первой набравшая 10. Попали в «4», но всё ещё отстаёте — ходите ещё раз."
+};
+const PCOLORS = ["#F8F3E6", "#22D3EE", "#A78BFA", "#A3E635", "#F472B6", "#60A5FA", "#34D399", "#E879F9"];
+const MIN_ROUNDS = 1, MAX_ROUNDS = 30;
 
 /* ---------------- Утилиты ---------------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -343,17 +393,25 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   del(k) { try { localStorage.removeItem(k); } catch {} }
 };
-function randId(n) { const a = "abcdefghijkmnpqrstuvwxyz23456789"; let s = ""; for (let i = 0; i < n; i++) s += a[rnd(a.length)]; return s; }
 function genCode() { const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s = ""; for (let i = 0; i < 4; i++) s += a[rnd(a.length)]; return s; }
 function plural(n, one, few, many) { const a = Math.abs(n) % 100, b = a % 10; if (a > 10 && a < 20) return many; if (b > 1 && b < 5) return few; if (b === 1) return one; return many; }
 const pts = n => `${n} ${plural(n, "очко", "очка", "очков")}`;
+/* Обёртка «записать объект целиком» — без слияния с тем, что уже лежит в базе */
+const LEAF = o => ({ __leaf: o });
+const isLeaf = v => isObj(v) && Object.prototype.hasOwnProperty.call(v, "__leaf");
 function deepMerge(t, p) {
   for (const k of Object.keys(p)) {
     const v = p[k];
-    if (isObj(v) && isObj(t[k])) deepMerge(t[k], v);
+    if (isLeaf(v)) t[k] = clone(v.__leaf);
+    else if (isObj(v) && isObj(t[k])) deepMerge(t[k], v);
     else t[k] = clone(v);
   }
   return t;
+}
+function stripNulls(v) {
+  if (Array.isArray(v)) return v.map(stripNulls);
+  if (isObj(v)) { const o = {}; for (const k of Object.keys(v)) { const c = stripNulls(v[k]); if (c !== null && c !== undefined) o[k] = c; } return o; }
+  return v;
 }
 const easeOut = k => 1 - Math.pow(1 - k, 3);
 const easeOutQuart = k => 1 - Math.pow(1 - k, 4);
@@ -414,6 +472,7 @@ function createDial(svg, uid) {
     el("line", { x1: f(x1), y1: f(y1), x2: f(x2), y2: f(y2), class: major ? "d-tick d-tick-major" : "d-tick" }, ticks);
   }
 
+  const marks = el("g", {}, svg);
   const needle = el("g", {}, svg);
   el("line", { x1: cx, y1: cy, x2: cx, y2: cy - R + 8, class: "d-needle-shadow" }, needle);
   el("line", { x1: cx, y1: cy, x2: cx, y2: cy - R + 8, class: "d-needle-line" }, needle);
@@ -521,8 +580,25 @@ function createDial(svg, uid) {
     if (live) svg.setAttribute("tabindex", "0");
     else { svg.removeAttribute("tabindex"); dragging = false; }
   }
-  return { setShutter, setTarget, spinTo, setNeedle, setInteractive, get value() { return needleV; } };
+  let marksKey = "[]";
+  /* Стрелки всех игроков (режим «Сам за себя»): [{v, color}] */
+  function setMarks(list) {
+    const key = JSON.stringify(list || []);
+    if (key === marksKey) return;
+    marksKey = key;
+    while (marks.firstChild) marks.removeChild(marks.firstChild);
+    (list || []).forEach(m => {
+      const g = el("g", {}, marks);
+      el("line", { x1: cx, y1: cy, x2: cx, y2: cy - R + 8, class: "d-needle-shadow" }, g);
+      el("line", { x1: cx, y1: cy, x2: cx, y2: cy - R + 8, stroke: m.color, "stroke-width": 3.5, "stroke-linecap": "round" }, g);
+      el("circle", { cx, cy: cy - R + 16, r: 9, fill: m.color, class: "d-mark-knob" }, g);
+      setRot(g, (m.v - 50) * 1.8);
+    });
+  }
+  return { setShutter, setTarget, spinTo, setNeedle, setInteractive, setMarks, get value() { return needleV; } };
 }
+
+
 
 /* ---------------- Игровая логика ---------------- */
 function pointsFor(target, needle) {
@@ -530,18 +606,27 @@ function pointsFor(target, needle) {
   return d <= 2.5 ? 4 : d <= 7.5 ? 3 : d <= 12.5 ? 2 : 0;
 }
 function blankGame(mode, rounds) {
-  return { mode, rounds, goal: 10, status: "lobby", round: null, score: { coop: 0, t: [0, 0] }, turns: [0, 0], used: [], history: [] };
+  return { mode, rounds, goal: 10, status: "lobby", round: null, score: { coop: 0, t: [0, 0], p: {} }, turns: [0, 0], used: [], history: [] };
 }
 function makeRound(n, psychic, team) {
-  return { n, psychic: psychic || null, team: team == null ? null : team, phase: "think", card: null, clue: "", needle: 50, side: null, target: null, pts: null, sidePts: null, again: false };
+  return {
+    n, psychic: psychic || null, team: team == null ? null : team, phase: "think",
+    card: null, spec: null, clue: "", needle: 50,
+    votes: null, sideVotes: null, side: null, guesses: null, ready: null, force: null,
+    target: null, pts: null, sidePts: null, again: false, results: null, psyPts: null
+  };
 }
 function sortedPlayers(players) {
   return players.slice().sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0) || String(a.seat).localeCompare(String(b.seat)));
 }
 function teamMembers(players, t) { return sortedPlayers(players).filter(p => (p.team | 0) === t); }
-
+function specOf(r) {
+  if (r && Array.isArray(r.spec) && r.spec.length === 2) return r.spec;
+  if (r && r.card != null && CARDS[r.card]) return CARDS[r.card];
+  return null;
+}
 function startPatch(G, players, online) {
-  const patch = { status: "play", score: { coop: 0, t: [0, 0] }, turns: [0, 0], history: [] };
+  const patch = { status: "play", score: { coop: 0, t: [0, 0], p: {} }, turns: [0, 0], history: [] };
   if (G.mode === "teams") {
     const team = rnd(2);
     const mem = online ? teamMembers(players, team) : [];
@@ -572,22 +657,44 @@ function nextPatch(G, players, online) {
   const psychic = order.length ? order[r.n % order.length].seat : null;
   return { round: makeRound(n, psychic, null) };
 }
-function revealPatch(G, target) {
-  const r = G.round;
-  const p = pointsFor(target, r.needle);
-  const entry = { n: r.n, card: r.card, clue: r.clue, target, needle: r.needle, pts: p, team: r.team, psychic: r.psychic, side: r.side, sidePts: 0 };
-  const patch = { round: { target, pts: p, sidePts: 0, again: false, phase: "result" } };
+function revealPatch(G, target, side) {
+  const r = G.round, spec = specOf(r);
+  if (G.mode === "solo") {
+    const guesses = r.guesses || {}, results = {}, p = Object.assign({}, G.score.p || {});
+    let hits = 0;
+    for (const uid of Object.keys(guesses)) {
+      const v = guesses[uid];
+      if (typeof v !== "number") continue;
+      const got = pointsFor(target, v);
+      results[uid] = got;
+      if (got > 0) hits++;
+      p[uid] = (p[uid] || 0) + got;
+    }
+    if (r.psychic) p[r.psychic] = (p[r.psychic] || 0) + hits;
+    const entry = { n: r.n, spec, clue: r.clue, target, psychic: r.psychic, results, psyPts: hits };
+    return {
+      round: { target, phase: "result", results: LEAF(results), psyPts: hits, ready: null },
+      score: { coop: G.score.coop, t: G.score.t.slice(), p: LEAF(p) },
+      history: (G.history || []).concat([entry]).slice(-40)
+    };
+  }
+  const got = pointsFor(target, r.needle);
+  const entry = { n: r.n, spec, clue: r.clue, target, needle: r.needle, pts: got, team: r.team, psychic: r.psychic, sidePts: 0 };
+  const patch = { round: { target, pts: got, sidePts: 0, again: false, phase: "result", ready: null } };
   if (G.mode === "teams") {
     const t = G.score.t.slice();
-    t[r.team] += p;
-    if (p < 4 && r.side) {
-      const ok = (r.side === "left" && target < r.needle) || (r.side === "right" && target > r.needle);
+    const sd = side || r.side || null;
+    t[r.team] += got;
+    if (got < 4 && sd) {
+      const ok = (sd === "left" && target < r.needle) || (sd === "right" && target > r.needle);
       if (ok) { t[1 - r.team] += 1; entry.sidePts = 1; patch.round.sidePts = 1; }
     }
-    patch.round.again = p === 4 && t[r.team] < t[1 - r.team];
+    entry.side = sd;
+    patch.round.side = sd;
+    patch.round.again = got === 4 && t[r.team] < t[1 - r.team];
     patch.score = { coop: G.score.coop, t };
   } else {
-    patch.score = { coop: G.score.coop + p, t: G.score.t.slice() };
+    patch.score = { coop: G.score.coop + got, t: G.score.t.slice() };
   }
   patch.history = (G.history || []).concat([entry]).slice(-40);
   return patch;
@@ -611,15 +718,15 @@ function rating(pct) {
 
 /* ---------------- Состояние ---------------- */
 const S = {
-  caps: "wait", authErr: null, db: null, uid: null,
-  seat: null, nick: "",
+  caps: "wait", authErr: null, db: null, uid: null, seat: null, nick: "",
   mode: null, code: null, game: null, players: [], playersRaw: {}, rooms: [], roomsOn: false,
   roomOk: false, online: new Set(), unsub: [],
   local: null, secret: null, loadingSecret: null, secretChecked: null,
   needle: null, lastDbNeedle: null, needleTimer: null, pendingNeedle: null, liveNeedle: null, liveTimer: null,
+  myGuess: null, revealKey: null, sideKey: null, advKey: null, localRevealT: null,
   view: null, wake: null, hashCode: null,
   ui: { peek: false, spinningKey: null, pair: null, pairKey: null, pick: 0, confirm: null },
-  drafts: { nick: "", code: "", clue: "" }
+  drafts: { nick: "", code: "", clue: "", left: "", right: "" }
 };
 S.nick = store.get("wl.nick") || "";
 S.drafts.nick = S.nick;
@@ -633,6 +740,53 @@ const rKey = G => (S.mode === "online" ? S.code : "local") + ":" + (G && G.round
 const myPlayer = () => S.players.find(p => p.seat === S.seat) || null;
 const nameOf = seat => { const p = S.players.find(x => x.seat === seat); return (p && p.name) || "Игрок"; };
 function currentNick() { return String(S.drafts.nick ?? S.nick).trim().slice(0, 24); }
+/* Админ — создатель комнаты; если он ушёл, права переходят к тому, кто зашёл раньше всех */
+function adminSeat(G) {
+  if (G && G.host && S.players.some(p => p.seat === G.host)) return G.host;
+  const s = sortedPlayers(S.players);
+  return s[0] ? s[0].seat : null;
+}
+const isAdmin = G => S.mode === "local" || (!!S.uid && adminSeat(G) === S.uid);
+function colorOf(seat) {
+  const i = sortedPlayers(S.players).findIndex(p => p.seat === seat);
+  return PCOLORS[(i < 0 ? 0 : i) % PCOLORS.length];
+}
+function guessersOf(G) {
+  const r = G.round;
+  if (G.mode === "teams") return teamMembers(S.players, r.team).map(p => p.seat).filter(s => s !== r.psychic);
+  return S.players.map(p => p.seat).filter(s => s !== r.psychic);
+}
+function opponentsOf(G) { return G.mode === "teams" ? teamMembers(S.players, 1 - G.round.team).map(p => p.seat) : []; }
+/* Кто ещё должен проголосовать/ответить и выполнено ли условие. Учитываем только тех, кто сейчас в сети. */
+function roundStatus(G) {
+  const r = G.round, on = s => S.online.has(s);
+  const out = { req: [], done: [], ready: false, side: null, split: false };
+  if (!r) return out;
+  if (r.phase === "guess" && G.mode === "solo") {
+    out.req = guessersOf(G).filter(on);
+    out.done = out.req.filter(s => r.guesses && typeof r.guesses[s] === "number");
+    out.ready = out.req.length > 0 && (out.done.length === out.req.length || (!!r.force && out.done.length > 0));
+  } else if (r.phase === "guess") {
+    out.req = guessersOf(G).filter(on);
+    out.done = out.req.filter(s => r.votes && r.votes[s]);
+    out.ready = out.req.length > 0 && out.done.length === out.req.length;
+  } else if (r.phase === "side") {
+    out.req = opponentsOf(G).filter(on);
+    const picks = out.req.map(s => r.sideVotes && r.sideVotes[s]).filter(Boolean);
+    out.done = out.req.filter(s => r.sideVotes && r.sideVotes[s]);
+    const all = out.req.length > 0 && picks.length === out.req.length;
+    const agree = all && picks.every(x => x === picks[0]);
+    out.split = all && !agree;
+    out.side = agree ? picks[0] : null;
+    out.ready = agree || out.req.length === 0;
+  } else if (r.phase === "result") {
+    out.req = S.players.map(p => p.seat).filter(on);
+    out.done = out.req.filter(s => r.ready && r.ready[s]);
+    out.ready = out.req.length > 0 && out.done.length === out.req.length;
+  }
+  return out;
+}
+function myGuessVal(r) { return S.myGuess && S.myGuess.n === r.n ? S.myGuess.v : 50; }
 
 /* ---------------- Секрет экстрасенса ---------------- */
 function getSecret(G) { const k = rKey(G); return S.secret && S.secret.key === k ? S.secret.target : null; }
@@ -668,11 +822,12 @@ function writeErr(e) {
   if (m.includes("permission")) return "Нет доступа к базе. Проверьте правила Realtime Database в консоли Firebase.";
   return "Не удалось сохранить ход. Проверьте интернет и попробуйте ещё раз.";
 }
-/* Превращает {round:{needle:5}} в {"round/needle":5}: так Firebase меняет только нужные поля. */
+/* {round:{needle:5}} → {"round/needle":5}: Firebase меняет только нужные поля */
 function flatten(obj, prefix, out) {
   for (const k of Object.keys(obj)) {
     const v = obj[k], p = prefix ? prefix + "/" + k : k;
-    if (isObj(v) && Object.keys(v).length) flatten(v, p, out);
+    if (isLeaf(v)) out[p] = isObj(v.__leaf) && !Object.keys(v.__leaf).length ? null : v.__leaf;
+    else if (isObj(v) && Object.keys(v).length) flatten(v, p, out);
     else if (Array.isArray(v)) out[p] = v.length ? v : null;
     else if (isObj(v)) out[p] = null;
     else out[p] = v === undefined ? null : v;
@@ -683,8 +838,8 @@ function commit(patch) {
   if (S.mode === "local") { deepMerge(S.local, patch); saveLocal(); render(); return Promise.resolve(); }
   if (S.mode !== "online" || !S.db || !S.code) return Promise.resolve();
   const code = S.code, now = Date.now(), upd = {};
-  const flat = flatten(clone(patch), "", {});
-  for (const p of Object.keys(flat)) upd[`rooms/${code}/game/${p}`] = flat[p];
+  const flat = flatten(patch, "", {});
+  for (const p of Object.keys(flat)) upd[`rooms/${code}/game/${p}`] = clone(flat[p]);
   upd[`rooms/${code}/game/updatedAt`] = now;
   upd[`lobby/${code}/updatedAt`] = now;
   if (patch.status) upd[`lobby/${code}/status`] = patch.status;
@@ -692,17 +847,23 @@ function commit(patch) {
   return writeQueue;
 }
 function saveLocal() { if (S.local) store.set("wl.local", S.local); }
+/* Сдвинули стрелку — согласия сбрасываются */
+function clearVotesNow() {
+  const G = S.game, r = G && G.round;
+  if (S.mode === "online" && r && r.phase === "guess" && r.votes && Object.keys(r.votes).length) commit({ round: { votes: null } });
+}
 function queueNeedleWrite(v) {
+  clearVotesNow();
   S.pendingNeedle = v;
   clearTimeout(S.needleTimer);
   S.needleTimer = setTimeout(() => {
     S.needleTimer = null;
     const G = S.game;
     if (S.mode !== "online" || !G || !G.round || G.round.phase !== "guess") return;
-    commit({ round: { needle: S.pendingNeedle } });
+    commit({ round: { needle: S.pendingNeedle, votes: null } });
   }, 220);
 }
-/* Живая стрелка: пока игрок тянет, остальные видят движение (до ~12 обновлений в секунду). */
+/* Живая стрелка: пока игрок тянет, остальные видят движение */
 function pushLiveNeedle(n, v) {
   S.liveNeedle = { n, v: r1(v), by: S.uid };
   if (S.liveTimer) return;
@@ -744,7 +905,7 @@ async function initFirebase() {
 function subscribeRooms() {
   if (S.roomsOn) return;
   S.roomsOn = true;
-  S.db.ref("lobby").orderByChild("updatedAt").limitToLast(12).on("value", snap => {
+  S.db.ref("lobby").orderByChild("updatedAt").limitToLast(40).on("value", snap => {
     const list = [];
     snap.forEach(c => { list.push(Object.assign({ id: c.key }, c.val())); });
     S.rooms = list.reverse();
@@ -774,7 +935,7 @@ async function createRoom() {
     const G = blankGame("coop", 7);
     Object.assign(G, { code, hostNick: nick, host: S.uid, createdAt: now, updatedAt: now });
     await S.db.ref().update({
-      [`rooms/${code}/game`]: clone(G),
+      [`rooms/${code}/game`]: stripNulls(clone(G)),
       [`lobby/${code}`]: { code, hostNick: nick, status: "lobby", updatedAt: now }
     });
     await joinRoom(code);
@@ -827,36 +988,44 @@ function enterRoom(code) {
     render();
   });
   listen(base.child("needle"), snap => {
-    const v = snap.val(), r = S.game && S.game.round;
-    if (S.code !== code || !v || v.by === S.uid || !r || r.phase !== "guess" || v.n !== r.n || typeof v.v !== "number") return;
+    const v = snap.val(), G = S.game, r = G && G.round;
+    if (S.code !== code || !v || v.by === S.uid || !r || r.phase !== "guess" || G.mode === "solo" || v.n !== r.n || typeof v.v !== "number") return;
     S.needle = { n: r.n, v: clamp(v.v, 0, 100) };
     render();
   });
+  /* Присутствие: в сети ли игрок и есть ли в комнате хоть кто-то (для списка открытых комнат) */
   const onlineRef = base.child(`players/${S.uid}/online`);
+  const lobbyRef = S.db.ref(`lobby/${code}/online/${S.uid}`);
   const conn = S.db.ref(".info/connected");
   const cfn = conn.on("value", s => {
     if (s.val() !== true || S.code !== code) return;
     onlineRef.onDisconnect().set(false).then(() => onlineRef.set(true)).catch(() => {});
+    lobbyRef.onDisconnect().remove().then(() => lobbyRef.set(true)).catch(() => {});
   });
-  S.unsub.push(() => { conn.off("value", cfn); onlineRef.onDisconnect().cancel().catch(() => {}); });
+  S.unsub.push(() => {
+    conn.off("value", cfn);
+    onlineRef.onDisconnect().cancel().catch(() => {});
+    lobbyRef.onDisconnect().cancel().catch(() => {});
+  });
   render();
 }
-const ROUND_DEFAULTS = { psychic: null, team: null, card: null, clue: "", needle: 50, side: null, target: null, pts: null, sidePts: null, again: false };
+const ROUND_DEFAULTS = makeRound(0, null, null);
 function arr(x) {
   if (Array.isArray(x)) return x;
   if (x && typeof x === "object") return Object.keys(x).sort((a, b) => a - b).map(k => x[k]);
   return [];
 }
-/* Firebase не хранит пустые массивы и null — возвращаем игре привычную форму. */
+/* Firebase не хранит пустые массивы и null — возвращаем игре привычную форму */
 function normGame(v) {
   const G = Object.assign({ mode: "coop", rounds: 7, goal: 10, status: "lobby" }, v);
   const sc = v.score || {}, t = arr(sc.t), tu = arr(v.turns);
-  G.score = { coop: sc.coop || 0, t: [t[0] || 0, t[1] || 0] };
+  G.score = { coop: sc.coop || 0, t: [t[0] || 0, t[1] || 0], p: sc.p || {} };
   G.turns = [tu[0] || 0, tu[1] || 0];
   G.used = arr(v.used);
   G.history = arr(v.history).filter(Boolean);
   G.teams = v.teams || {};
   G.round = v.round ? Object.assign({}, ROUND_DEFAULTS, v.round) : null;
+  if (G.round && Array.isArray(G.round.spec) === false && G.round.spec) G.round.spec = arr(G.round.spec);
   return G;
 }
 function buildPlayers() {
@@ -879,6 +1048,23 @@ function onGame(G) {
   if (!prev || !prev.round || !r || prev.round.n !== r.n || prev.status !== G.status) resetRoundUI();
   render();
 }
+/* Следующий раунд, когда все готовы. Транзакция: даже если нажали одновременно, раунд сменится один раз. */
+function advanceRound(n) {
+  const code = S.code;
+  S.db.ref(`rooms/${code}/game`).transaction(cur => {
+    if (!cur) return cur;
+    const G = normGame(cur);
+    if (G.status !== "play" || !G.round || G.round.n !== n || G.round.phase !== "result") return;
+    const out = deepMerge(G, nextPatch(G, S.players, true));
+    out.updatedAt = Date.now();
+    return stripNulls(out);
+  }).then(res => {
+    if (res && res.committed) {
+      const v = res.snapshot.val() || {};
+      S.db.ref(`lobby/${code}`).update({ status: v.status || "play", updatedAt: Date.now() }).catch(() => {});
+    }
+  }).catch(e => { S.advKey = null; toast(writeErr(e)); });
+}
 function leaveSubs() {
   S.unsub.forEach(u => { try { u(); } catch {} });
   S.unsub = [];
@@ -892,10 +1078,19 @@ function exitOnline() {
   store.del("wl.room");
   render();
 }
+/* Выход из комнаты. Ушёл последний — комната удаляется целиком. */
 async function leaveRoom() {
   const code = S.code, uid = S.uid;
   leaveSubs();
-  try { await S.db.ref().update({ [`rooms/${code}/players/${uid}`]: null, [`rooms/${code}/game/teams/${uid}`]: null }); } catch {}
+  try {
+    await S.db.ref().update({
+      [`rooms/${code}/players/${uid}`]: null,
+      [`rooms/${code}/game/teams/${uid}`]: null,
+      [`lobby/${code}/online/${uid}`]: null
+    });
+    const rest = await S.db.ref(`rooms/${code}/players`).get();
+    if (!rest.exists()) await S.db.ref().update({ [`rooms/${code}/game`]: null, [`rooms/${code}/needle`]: null, [`lobby/${code}`]: null });
+  } catch {}
   exitOnline();
 }
 function setNick(nick) { S.nick = nick; S.drafts.nick = nick; store.set("wl.nick", nick); }
@@ -908,11 +1103,61 @@ function copyText(text, okMsg) {
   catch { toast(text); }
 }
 
+/* ---------------- Автоматика раунда ---------------- */
+/* Экстрасенс ведёт раунд: только у него есть цель, поэтому шторку открывает его устройство —
+   через секунду после того, как все согласились. */
+function tick() {
+  const G = G_();
+  if (!G || G.status !== "play" || !G.round) return;
+  const r = G.round;
+  if (S.mode === "local") {
+    if (r.phase === "reveal" && !S.localRevealT) {
+      S.localRevealT = setTimeout(() => {
+        S.localRevealT = null;
+        const L = S.local;
+        if (S.mode !== "local" || !L || !L.round || L.round.phase !== "reveal") return;
+        const t = getSecret(L);
+        if (t != null) commit(revealPatch(L, t, L.round.side));
+      }, 1000);
+    }
+    return;
+  }
+  const st = roundStatus(G);
+  if (r.psychic === S.uid) {
+    if (r.phase === "guess" && G.mode === "teams" && st.ready) {
+      const key = `side:${S.code}:${r.n}`;
+      if (S.sideKey !== key) { S.sideKey = key; commit({ round: { phase: "side", sideVotes: null } }); }
+    }
+    const revealable = (r.phase === "guess" && G.mode !== "teams") || r.phase === "side";
+    if (revealable && st.ready && getSecret(G) != null) {
+      const key = `rev:${S.code}:${r.n}`;
+      if (S.revealKey !== key) {
+        S.revealKey = key;
+        setTimeout(() => {
+          const G2 = S.game;
+          if (S.mode !== "online" || !G2 || !G2.round || G2.round.n !== r.n) { S.revealKey = null; return; }
+          const ph = G2.round.phase, st2 = roundStatus(G2), t = getSecret(G2);
+          const ok = ((ph === "guess" && G2.mode !== "teams") || ph === "side") && st2.ready && t != null;
+          if (!ok) { S.revealKey = null; render(); return; }
+          commit(revealPatch(G2, t, st2.side));
+        }, 1000);
+      }
+    }
+  }
+  if (r.phase === "result" && st.ready) {
+    const key = `adv:${S.code}:${r.n}`;
+    if (S.advKey !== key) { S.advKey = key; advanceRound(r.n); }
+  }
+}
+
 /* ---------------- Действия ---------------- */
-function resetRoundUI() { S.ui.peek = false; S.ui.pair = null; S.ui.pairKey = null; S.ui.pick = 0; S.ui.confirm = null; S.drafts.clue = ""; }
+function resetRoundUI() {
+  S.ui.peek = false; S.ui.pair = null; S.ui.pairKey = null; S.ui.pick = 0; S.ui.confirm = null;
+  S.drafts.clue = ""; S.drafts.left = ""; S.drafts.right = ""; S.myGuess = null;
+}
 function ensurePair(G) {
   const k = rKey(G);
-  if (S.ui.pairKey !== k || !S.ui.pair) { S.ui.pair = drawPair(G); S.ui.pairKey = k; S.ui.pick = 0; S.drafts.clue = ""; }
+  if (S.ui.pairKey !== k || !S.ui.pair) { S.ui.pair = drawPair(G); S.ui.pairKey = k; S.ui.pick = 0; }
 }
 let confirmTimer = null;
 function confirmable(key, fn) {
@@ -923,9 +1168,10 @@ function confirmable(key, fn) {
   render();
 }
 const confirmLabel = (key, label) => S.ui.confirm === key ? "Точно? Нажмите ещё раз" : label;
+const canSkip = G => S.mode === "local" || (G && G.round && (G.round.psychic === S.uid || isAdmin(G)));
 
 const ACT = {
-  home() { if (S.mode === "local") { S.mode = null; render(); } else if (!S.mode) { window.scrollTo(0, 0); } },
+  home() { if (S.mode === "local") { S.mode = null; render(); } else if (!S.mode) window.scrollTo(0, 0); },
   create() { createRoom(); },
   join() { joinRoom(S.drafts.code); },
   joinRoom(arg) { joinRoom(arg); },
@@ -940,10 +1186,18 @@ const ACT = {
     const s = store.get("wl.secret"); if (s) S.secret = s;
     resetRoundUI(); render();
   },
-  setMode(arg) { const G = G_(); if (G && G.status === "lobby" && G.mode !== arg) commit({ mode: arg }); },
-  setRounds(arg) { const G = G_(); if (G && G.status === "lobby") commit({ rounds: +arg }); },
+  setMode(arg) {
+    const G = G_(); if (!G || G.status !== "lobby" || !isAdmin(G) || !MODE_NAMES[arg]) return;
+    if (S.mode === "local" && arg === "solo") return;
+    if (G.mode !== arg) commit({ mode: arg });
+  },
+  rounds(arg) {
+    const G = G_(); if (!G || G.status !== "lobby" || !isAdmin(G)) return;
+    const n = clamp((G.rounds || 7) + (+arg || 0), MIN_ROUNDS, MAX_ROUNDS);
+    if (n !== G.rounds) commit({ rounds: n });
+  },
   start() {
-    const G = G_(); if (!G || G.status !== "lobby") return;
+    const G = G_(); if (!G || G.status !== "lobby" || !isAdmin(G)) return;
     const online = S.mode === "online";
     if (online) {
       if (G.mode === "teams" && (teamMembers(S.players, 0).length < 2 || teamMembers(S.players, 1).length < 2)) return toast("В каждой команде нужно минимум 2 игрока");
@@ -953,15 +1207,16 @@ const ACT = {
     commit(startPatch(G, S.players, online));
   },
   async switchTeam() {
-    const me = myPlayer(); if (!me) return;
+    const me = myPlayer(); if (!me || !S.game || S.game.status !== "lobby") return;
     try { await S.db.ref(`rooms/${S.code}/game/teams/${S.uid}`).set(me.team === 1 ? 0 : 1); } catch (e) { toast(writeErr(e)); }
   },
   shuffle() {
+    const G = G_(); if (!G || !isAdmin(G)) return;
     const list = S.players.slice();
     for (let i = list.length - 1; i > 0; i--) { const j = rnd(i + 1); [list[i], list[j]] = [list[j], list[i]]; }
     const teams = {};
     list.forEach((p, i) => { teams[p.seat] = i % 2; });
-    commit({ teams }).then(() => toast("Команды перемешаны"));
+    commit({ teams: LEAF(teams) }).then(() => toast("Команды перемешаны"));
   },
   async saveNick() {
     const nick = currentNick();
@@ -992,53 +1247,94 @@ const ACT = {
     dialG.spinTo(target, () => { S.ui.spinningKey = null; render(); });
     render();
   },
-  pick(arg) { S.ui.pick = +arg === 1 ? 1 : 0; render(); },
+  pick(arg) { S.ui.pick = [0, 1, 2].includes(+arg) ? +arg : 0; render(); setTimeout(() => { if (S.ui.pick === 2) { const f = $("#leftInput"); if (f && !f.value) f.focus(); } }, 0); },
   reroll() { const G = G_(); S.ui.pair = drawPair(G, S.ui.pair || []); S.ui.pick = 0; render(); },
   submitClue() {
     const G = G_(); if (!G || !G.round || G.round.phase !== "think" || !S.ui.pair) return;
     if (getSecret(G) == null) return;
     const clue = String(S.drafts.clue || "").trim().slice(0, 60);
     if (S.mode === "online" && !clue) { toast("Напишите подсказку"); return; }
-    const card = S.ui.pair[S.ui.pick];
-    let used = (G.used || []).concat([card]);
-    if (used.length > CARDS.length - 4) used = [card];
+    let card = null, spec;
+    if (S.ui.pick === 2) {
+      const l = String(S.drafts.left || "").trim().slice(0, 32), rr = String(S.drafts.right || "").trim().slice(0, 32);
+      if (!l || !rr) { toast("Заполните обе крайности шкалы"); return; }
+      spec = [l, rr];
+    } else { card = S.ui.pair[S.ui.pick]; spec = CARDS[card]; }
+    const patch = { round: { card, spec, clue, phase: "guess", needle: 50, votes: null } };
+    if (card != null) {
+      let used = (G.used || []).concat([card]);
+      if (used.length > CARDS.length - 4) used = [card];
+      patch.used = used;
+    }
     S.drafts.clue = ""; S.ui.peek = false;
-    commit({ round: { card, clue, phase: "guess", needle: 50 }, used });
+    commit(patch);
   },
   nudge(arg) {
     const G = G_(); if (!G || G.round.phase !== "guess") return;
-    const v = clamp(r1(displayedNeedle(G) + (+arg)), 0, 100);
-    if (S.mode === "local") { G.round.needle = v; saveLocal(); }
-    else { S.needle = { n: G.round.n, v }; queueNeedleWrite(v); }
+    const r = G.round, d = +arg || 0;
+    if (S.mode === "local") { const v = clamp(r1(r.needle + d), 0, 100); r.needle = v; saveLocal(); dialG.setNeedle(v, true); return; }
+    if (G.mode === "solo") {
+      if (r.guesses && typeof r.guesses[S.uid] === "number") return;
+      const v = clamp(r1(myGuessVal(r) + d), 0, 100);
+      S.myGuess = { n: r.n, v }; dialG.setNeedle(v, true); return;
+    }
+    const v = clamp(r1(displayedNeedle(G) + d), 0, 100);
+    S.needle = { n: r.n, v }; pushLiveNeedle(r.n, v); queueNeedleWrite(v);
     dialG.setNeedle(v, true);
   },
+  /* Один телефон: фиксируем стрелку сразу */
   lock() {
-    const G = G_(); if (!G) return; const r = G.round; if (r.phase !== "guess") return;
-    const v = r1(displayedNeedle(G));
-    let phase = G.mode === "teams" ? "side" : "reveal";
-    if (S.mode === "online" && G.mode === "teams" && teamMembers(S.players, 1 - r.team).length === 0) phase = "reveal";
-    clearTimeout(S.needleTimer); S.needleTimer = null;
-    clearTimeout(S.liveTimer); S.liveTimer = null;
-    commit({ round: { needle: v, phase } });
+    const G = G_(); if (!G || S.mode !== "local") return;
+    const r = G.round; if (r.phase !== "guess") return;
+    commit({ round: { needle: r1(r.needle), phase: G.mode === "teams" ? "side" : "reveal" } });
   },
-  side(arg) { const G = G_(); if (!G || G.round.phase !== "side") return; commit({ round: { side: arg === "left" ? "left" : "right", phase: "reveal" } }); },
-  reveal() {
-    const G = G_(); if (!G || G.round.phase !== "reveal") return;
-    const t = getSecret(G);
-    if (t == null) { toast("Цель этого раунда не найдена"); return; }
-    commit(revealPatch(G, t));
+  /* Онлайн: «Согласен» / «Отменить согласие» */
+  vote() {
+    const G = G_(); if (!G || S.mode !== "online") return;
+    const r = G.round; if (r.phase !== "guess" || G.mode === "solo") return;
+    if (r.votes && r.votes[S.uid]) { commit({ round: { votes: { [S.uid]: null } } }); return; }
+    if (S.needleTimer) {
+      clearTimeout(S.needleTimer); S.needleTimer = null;
+      commit({ round: { needle: S.pendingNeedle, votes: LEAF({ [S.uid]: true }) } });
+      return;
+    }
+    commit({ round: { votes: { [S.uid]: true } } });
+  },
+  side(arg) {
+    const G = G_(); if (!G || G.round.phase !== "side") return;
+    const sd = arg === "left" ? "left" : "right";
+    if (S.mode === "local") { commit({ round: { side: sd, phase: "reveal" } }); return; }
+    const cur = G.round.sideVotes && G.round.sideVotes[S.uid];
+    commit({ round: { sideVotes: { [S.uid]: cur === sd ? null : sd } } });
+  },
+  guessDone() {
+    const G = G_(); if (!G || G.mode !== "solo" || G.round.phase !== "guess") return;
+    commit({ round: { guesses: { [S.uid]: r1(myGuessVal(G.round)) } } });
+  },
+  guessEdit() {
+    const G = G_(); if (!G || G.mode !== "solo" || G.round.phase !== "guess") return;
+    const r = G.round, v = r.guesses && r.guesses[S.uid];
+    if (typeof v === "number") S.myGuess = { n: r.n, v };
+    commit({ round: { guesses: { [S.uid]: null } } });
+  },
+  force() { const G = G_(); if (G && isAdmin(G) && G.round.phase === "guess") commit({ round: { force: true } }); },
+  ready() {
+    const G = G_(); if (!G || S.mode !== "online" || G.round.phase !== "result") return;
+    const on = G.round.ready && G.round.ready[S.uid];
+    commit({ round: { ready: { [S.uid]: on ? null : true } } });
   },
   next() {
-    const G = G_(); if (!G || !G.round || G.round.phase !== "result") return;
+    const G = G_(); if (!G || S.mode !== "local" || !G.round || G.round.phase !== "result") return;
     resetRoundUI();
-    commit(nextPatch(G, S.players, S.mode === "online"));
+    commit(nextPatch(G, S.players, false));
   },
   skip() {
+    const G = G_(); if (!G || !G.round || !canSkip(G)) return;
     confirmable("skip", () => {
-      const G = G_(); if (!G || !G.round) return;
-      const r = G.round;
-      const history = (G.history || []).concat([{ n: r.n, card: r.card, clue: r.clue, skipped: true, pts: 0, team: r.team, psychic: r.psychic, sidePts: 0 }]).slice(-40);
-      const np = nextPatch(Object.assign({}, G, { round: Object.assign({}, r, { again: false }) }), S.players, S.mode === "online");
+      const G2 = G_(); if (!G2 || !G2.round) return;
+      const r = G2.round;
+      const history = (G2.history || []).concat([{ n: r.n, spec: specOf(r), clue: r.clue, skipped: true, pts: 0, team: r.team, psychic: r.psychic, sidePts: 0 }]).slice(-40);
+      const np = nextPatch(Object.assign({}, G2, { round: Object.assign({}, r, { again: false }) }), S.players, S.mode === "online");
       resetRoundUI();
       commit(Object.assign(np, { history }));
     });
@@ -1047,13 +1343,13 @@ const ACT = {
     confirmable("leave", () => { if (S.mode === "online") leaveRoom(); else { S.mode = null; render(); } });
   },
   again() {
+    const G = G_(); if (!G || !isAdmin(G)) return;
     if (S.mode === "local") { S.secret = null; store.del("wl.secret"); }
     resetRoundUI();
-    commit({ status: "lobby", round: null, score: { coop: 0, t: [0, 0] }, history: [], turns: [0, 0] });
+    commit({ status: "lobby", round: null, score: { coop: 0, t: [0, 0], p: {} }, history: [], turns: [0, 0] });
   },
-  menu() { if (S.mode === "online") exitOnlineKeepSeat(); else { S.mode = null; render(); } }
+  menu() { if (S.mode === "online") exitOnline(); else { S.mode = null; render(); } }
 };
-function exitOnlineKeepSeat() { exitOnline(); }
 
 /* ---------------- Отрисовка ---------------- */
 function setHTML(el, html) {
@@ -1076,6 +1372,7 @@ function show(view) {
 }
 const msg = html => `<p class="msg">${html}</p>`;
 const segBtn = (act, arg, label, on) => `<button type="button" data-act="${act}" data-arg="${esc(arg)}" aria-pressed="${on ? "true" : "false"}">${esc(label)}</button>`;
+const stepper = n => `<div class="stepper" role="group" aria-label="Количество раундов"><button type="button" data-act="rounds" data-arg="-1" aria-label="Меньше раундов"${n <= MIN_ROUNDS ? " disabled" : ""}>−</button><output aria-live="polite">${n}</output><button type="button" data-act="rounds" data-arg="1" aria-label="Больше раундов"${n >= MAX_ROUNDS ? " disabled" : ""}>+</button></div>`;
 
 function render() {
   try {
@@ -1091,6 +1388,7 @@ function render() {
       else renderGame();
     } else renderHome();
     renderTop();
+    tick();
   } catch (err) { console.error(err); }
 }
 
@@ -1102,11 +1400,13 @@ function renderTop() {
   setHTML($("#topRight"), html);
 }
 function scoreHTML(G) {
+  const roundChip = `<span class="chip">${Math.min(G.round ? G.round.n : 1, G.rounds)}/${G.rounds}</span>`;
   if (G.mode === "teams") {
     const a = G.round ? G.round.team : null;
     return [0, 1].map(t => `<span class="chip t${t}${a === t && G.status === "play" ? " is-active" : ""}" title="${TEAMS[t]}"><span class="tdot"></span>${TEAM_SHORT[t]} <b>${G.score.t[t]}</b></span>`).join("");
   }
-  return `<span class="chip"><b>${G.score.coop}</b> ${plural(G.score.coop, "очко", "очка", "очков")}</span><span class="chip">${Math.min(G.round ? G.round.n : 1, G.rounds)}/${G.rounds}</span>`;
+  if (G.mode === "solo") return `<span class="chip">Вы <b>${(G.score.p || {})[S.uid] || 0}</b></span>${roundChip}`;
+  return `<span class="chip"><b>${G.score.coop}</b> ${plural(G.score.coop, "очко", "очка", "очков")}</span>${roundChip}`;
 }
 
 /* Главная */
@@ -1137,14 +1437,14 @@ function renderHome() {
     : `${msg("Все сидят рядом, телефон передают по кругу. Подходит для двоих и для компании.")}<button class="btn btn-block" type="button" data-act="local">Играть на одном телефоне</button>`;
   setHTML($("#homeLocal"), local);
 }
+/* В списке только комнаты, где сейчас кто-то есть */
 function roomsHTML() {
-  const now = Date.now();
-  const list = S.rooms.filter(g => now - (g.updatedAt || 0) < 12 * 3600e3);
-  if (!list.length) return `<p class="msg small">Открытых комнат пока нет. Создайте свою — друзья увидят её здесь.</p>`;
+  const list = S.rooms.filter(g => g && g.online && Object.keys(g.online).length > 0);
+  if (!list.length) return `<p class="msg small">Открытых комнат сейчас нет. Создайте свою — друзья увидят её здесь.</p>`;
   const st = { lobby: "ждут игроков", play: "идёт игра", over: "игра окончена" };
   return `<div class="field"><span class="label">Открытые комнаты</span><div class="rooms">${list.map(g => {
-    const code = String(g.code || g.id);
-    return `<button class="room" type="button" data-act="joinRoom" data-arg="${esc(code)}"><span><b>${esc(g.hostNick || "Комната")}</b> <span class="msg small">· ${st[g.status] || ""}</span></span><code>${esc(code)}</code></button>`;
+    const code = String(g.code || g.id), n = Object.keys(g.online).length;
+    return `<button class="room" type="button" data-act="joinRoom" data-arg="${esc(code)}"><span><b>${esc(g.hostNick || "Комната")}</b> <span class="msg small">· ${st[g.status] || ""} · в сети ${n}</span></span><code>${esc(code)}</code></button>`;
   }).join("")}</div></div>`;
 }
 
@@ -1158,30 +1458,52 @@ function renderSetup() {
     <div class="panel">
       <h2>Режим</h2>
       <div class="seg" role="group" aria-label="Режим">${segBtn("setMode", "coop", "Вместе", !teams)}${segBtn("setMode", "teams", "Две команды", teams)}</div>
-      ${msg(teams ? RULE_TEAMS : RULE_COOP)}
-      ${teams ? "" : `<div class="field"><span class="label">Сколько раундов</span><div class="seg" role="group" aria-label="Раундов">${[5, 7, 10].map(n => segBtn("setRounds", n, n, G.rounds === n)).join("")}</div></div>`}
+      ${msg(RULES_LOCAL[G.mode] || RULES_LOCAL.coop)}
+      ${teams ? "" : `<div class="setting"><span class="label">Сколько раундов</span>${stepper(G.rounds)}</div>`}
     </div>
     <button class="btn btn-primary btn-block" type="button" data-act="start">Начать игру</button>
     <button class="btn-quiet" type="button" data-act="menu">Назад</button>`);
 }
 
-/* Лобби комнаты */
+/* Фишка игрока */
+function chipMark(G, seat) {
+  const r = G && G.round;
+  if (!r || G.status !== "play") return "";
+  if (r.phase === "guess" && G.mode === "solo") return r.guesses && typeof r.guesses[seat] === "number" ? "✓" : "";
+  if (r.phase === "guess") return r.votes && r.votes[seat] ? "✓" : "";
+  if (r.phase === "side") { const v = r.sideVotes && r.sideVotes[seat]; return v === "left" ? "←" : v === "right" ? "→" : ""; }
+  if (r.phase === "result") return r.ready && r.ready[seat] ? "✓" : "";
+  return "";
+}
 function plChip(p, G) {
   const r = G && G.round;
-  const teamCls = G && G.mode === "teams" ? ` t${p.team | 0}` : "";
-  return `<span class="pl${teamCls}">${S.roomOk ? `<span class="on${S.online.has(p.seat) ? " is-on" : ""}" aria-hidden="true"></span>` : ""}<span class="nm">${esc(p.name || "Игрок")}</span>${p.seat === S.seat ? `<span class="tag">вы</span>` : ""}${r && G.status === "play" && r.psychic === p.seat ? `<span class="tag">экстрасенс</span>` : ""}</span>`;
+  const dot = G && G.mode === "teams" ? `<span class="tdot t${p.team}"></span>` : `<span class="cdot" style="background:${colorOf(p.seat)}"></span>`;
+  const tags = [];
+  if (p.seat === S.uid) tags.push("вы");
+  if (G && G.status === "play" && r && r.psychic === p.seat) tags.push("экстрасенс");
+  if (G && adminSeat(G) === p.seat) tags.push("админ");
+  const score = G && G.mode === "solo" && G.status !== "lobby" ? `<span class="sc">${(G.score.p || {})[p.seat] || 0}</span>` : "";
+  const mk = chipMark(G, p.seat);
+  return `<span class="pl${p.online ? "" : " is-off"}" title="${p.online ? "в сети" : "не в сети"}">${dot}<span class="nm">${esc(p.name || "Игрок")}</span>${tags.map(t => `<span class="tag">${t}</span>`).join("")}${score}${mk ? `<span class="mk">${mk}</span>` : ""}</span>`;
 }
+
+/* Лобби комнаты */
 function renderLobby() {
   show("vLobby");
-  const G = S.game, teams = G.mode === "teams";
+  const G = S.game, mode = MODE_NAMES[G.mode] ? G.mode : "coop", teams = mode === "teams";
+  const admin = isAdmin(G), adminName = nameOf(adminSeat(G));
   const players = sortedPlayers(S.players);
   let canStart, why = "";
   if (teams) { canStart = teamMembers(S.players, 0).length >= 2 && teamMembers(S.players, 1).length >= 2; if (!canStart) why = "В каждой команде нужно минимум 2 игрока."; }
   else { canStart = players.length >= 2; if (!canStart) why = "Нужно минимум 2 игрока. Позовите кого-нибудь в комнату."; }
   const playersBlock = teams
     ? `<div class="teams">${[0, 1].map(t => { const mem = teamMembers(S.players, t); return `<div class="team t${t}"><div class="team-name"><span class="tdot"></span>${TEAMS[t]}</div>${mem.map(p => plChip(p, G)).join("") || `<span class="msg small">пока никого</span>`}</div>`; }).join("")}</div>
-       <div class="row"><button class="btn" type="button" data-act="switchTeam"${myPlayer() ? "" : " disabled"}>Сменить команду</button><button class="btn" type="button" data-act="shuffle">Перемешать</button></div>`
+       <div class="row"><button class="btn" type="button" data-act="switchTeam"${myPlayer() ? "" : " disabled"}>Сменить команду</button>${admin ? `<button class="btn" type="button" data-act="shuffle">Перемешать</button>` : ""}</div>`
     : `<div class="players">${players.map(p => plChip(p, G)).join("")}</div>`;
+  const roundsBlock = teams ? "" : (admin
+    ? `<div class="setting"><span class="label">Сколько раундов</span>${stepper(G.rounds)}</div>`
+    : `<p class="msg">Раундов: <b>${G.rounds}</b></p>`)
+    + (mode === "solo" && players.length > 1 && G.rounds % players.length !== 0 ? `<p class="msg small">Чтобы каждый побыл экстрасенсом поровну, возьмите число раундов, кратное числу игроков (${players.length}).</p>` : "");
   if (S.drafts.nick == null || S.drafts.nick === "") S.drafts.nick = (myPlayer() && myPlayer().name) || S.nick;
   setHTML($("#vLobby"), `
     <div class="lobby-head">
@@ -1197,90 +1519,110 @@ function renderLobby() {
     </div>
     <div class="panel">
       <h2>Режим</h2>
-      <div class="seg" role="group" aria-label="Режим">${segBtn("setMode", "coop", "Вместе", !teams)}${segBtn("setMode", "teams", "Две команды", teams)}</div>
-      ${msg(teams ? RULE_TEAMS : RULE_COOP)}
-      ${teams ? "" : `<div class="field"><span class="label">Сколько раундов</span><div class="seg" role="group" aria-label="Раундов">${[5, 7, 10].map(n => segBtn("setRounds", n, n, G.rounds === n)).join("")}</div></div>`}
+      ${admin
+        ? `<div class="seg" role="group" aria-label="Режим">${["coop", "teams", "solo"].map(m => segBtn("setMode", m, MODE_NAMES[m], mode === m)).join("")}</div>`
+        : `<p class="mode-name">${MODE_NAMES[mode]}</p>`}
+      ${msg(RULES[mode])}
+      ${roundsBlock}
+      ${admin ? "" : `<p class="msg small">Настройки меняет админ — ${esc(adminName)}.</p>`}
     </div>
     <div class="panel">
       <h2>Игроки · ${players.length}</h2>
       ${playersBlock}
     </div>
-    ${why ? msg(why) : ""}
-    <button class="btn btn-primary btn-block" type="button" data-act="start"${canStart ? "" : " disabled"}>Начать игру</button>
+    ${admin
+      ? `${why ? msg(why) : ""}<button class="btn btn-primary btn-block" type="button" data-act="start"${canStart ? "" : " disabled"}>Начать игру</button>`
+      : msg(`Игру начнёт <b>${esc(adminName)}</b>.${why ? " " + why : ""}`)}
     <button class="btn-quiet" type="button" data-act="leave">${confirmLabel("leave", "Выйти из комнаты")}</button>`);
 }
 
 /* Раунд */
 function roleOf(G) {
-  const r = G.round, me = myPlayer();
-  const psy = r.psychic === S.seat;
-  if (G.mode === "teams") {
-    const myTeam = me ? (me.team | 0) : -1;
-    return { psy, guess: !psy && myTeam === r.team, opp: myTeam >= 0 && myTeam !== r.team };
-  }
-  return { psy, guess: !psy && !!me, opp: false };
+  const r = G.round, me = myPlayer(), psy = r.psychic === S.uid;
+  if (!me) return { psy, guess: false, opp: false };
+  if (G.mode === "teams") return { psy, guess: !psy && me.team === r.team, opp: me.team !== r.team };
+  return { psy, guess: !psy, opp: false };
 }
-function spectrumHTML(card) {
-  if (card == null || !CARDS[card]) return `<div class="spectrum is-empty"><div class="spec-l">← ?</div><div class="spec-r">? →</div></div>`;
-  return `<div class="spectrum"><div class="spec-l">← ${esc(CARDS[card][0])}</div><div class="spec-r">${esc(CARDS[card][1])} →</div></div>`;
+function spectrumHTML(spec) {
+  if (!spec) return `<div class="spectrum is-empty"><div class="spec-l">← ?</div><div class="spec-r">? →</div></div>`;
+  return `<div class="spectrum"><div class="spec-l">← ${esc(spec[0] || "…")}</div><div class="spec-r">${esc(spec[1] || "…")} →</div></div>`;
 }
 function renderGame() {
   show("vGame");
-  const G = G_(), r = G.round, online = S.mode === "online", teams = G.mode === "teams";
+  const G = G_(), r = G.round, online = S.mode === "online", solo = G.mode === "solo";
   const role = online ? roleOf(G) : null;
   const k = rKey(G);
   const isPsyView = online ? role.psy : (r.phase === "think" && S.ui.peek) || r.phase === "reveal";
   if (isPsyView && getSecret(G) == null && S.secretChecked !== k) loadSecret(G);
   const secret = getSecret(G);
   const spinning = S.ui.spinningKey === k;
+  const st = online ? roundStatus(G) : null;
 
-  /* Голова раунда */
-  const head = `<div><div class="eyebrow">Раунд ${r.n}${!teams ? ` из ${G.rounds}` : ""}${teams ? ` · ход команды «${TEAMS[r.team]}»` : ""}</div></div>`
-    + (online ? `<div class="who">Экстрасенс: <b>${r.psychic === S.seat ? "вы" : esc(nameOf(r.psychic))}</b></div>` : "");
-  setHTML($("#gHead"), head);
+  setHTML($("#gHead"), `<div><div class="eyebrow">Раунд ${r.n}${G.mode !== "teams" ? ` из ${G.rounds}` : ` · ход команды «${TEAMS[r.team]}»`}</div></div>`
+    + (online ? `<div class="who">Экстрасенс: <b>${r.psychic === S.uid ? "вы" : esc(nameOf(r.psychic))}</b></div>` : ""));
 
   /* Шкала */
-  let open = false, target = null, needleShow = r.phase !== "think", live = false;
-  if (r.phase === "result") { open = true; target = r.target; }
-  else if (online) {
+  let open = false, target = null, needle = null, live = false, marks = [];
+  if (r.phase === "result") {
+    open = true; target = r.target;
+    if (solo) marks = Object.keys(r.guesses || {}).filter(u => typeof r.guesses[u] === "number").map(u => ({ v: r.guesses[u], color: colorOf(u) }));
+    else needle = r.needle;
+  } else if (online) {
     if (role.psy && secret != null) { open = true; target = secret; }
-    live = r.phase === "guess" && role.guess;
+    if (solo) {
+      if (r.phase === "guess" && role.guess) {
+        const mine = r.guesses && typeof r.guesses[S.uid] === "number" ? r.guesses[S.uid] : null;
+        needle = mine != null ? mine : myGuessVal(r);
+        live = mine == null;
+      }
+    } else {
+      if (r.phase !== "think") needle = r.phase === "guess" ? displayedNeedle(G) : r.needle;
+      live = r.phase === "guess" && role.guess && !st.ready;
+    }
   } else {
     if (r.phase === "think" && S.ui.peek && secret != null) { open = true; target = secret; }
+    if (r.phase !== "think") needle = r.needle;
     live = r.phase === "guess";
   }
   if (spinning) open = true;
   dialG.setShutter(open, true);
   dialG.setTarget(target);
-  dialG.setNeedle(needleShow ? (r.phase === "guess" ? displayedNeedle(G) : r.needle) : null, true);
+  dialG.setMarks(marks);
+  dialG.setNeedle(needle, true);
   dialG.setInteractive(live);
 
   /* Карточка-шкала */
-  let card = r.card;
+  let spec = specOf(r);
   const picking = r.phase === "think" && (online ? role.psy : S.ui.peek) && secret != null;
-  if (picking) { ensurePair(G); card = S.ui.pair[S.ui.pick]; }
-  setHTML($("#gSpectrum"), spectrumHTML(card));
+  if (picking) {
+    ensurePair(G);
+    spec = S.ui.pick === 2 ? [S.drafts.left.trim() || "…", S.drafts.right.trim() || "…"] : CARDS[S.ui.pair[S.ui.pick]];
+  }
+  setHTML($("#gSpectrum"), spectrumHTML(spec));
 
-  /* Подсказка */
   const clueEl = $("#gClue");
-  if (r.phase === "think") { clueEl.hidden = true; }
+  if (r.phase === "think") clueEl.hidden = true;
   else {
     clueEl.hidden = false;
     clueEl.classList.toggle("is-quiet", !r.clue);
     setHTML(clueEl, r.clue ? `<small>Подсказка</small>«${esc(r.clue)}»` : `<small>Подсказка</small>звучит вслух`);
   }
 
-  /* Панель */
-  setHTML($("#gPanel"), panelHTML(G, role, secret, spinning));
+  setHTML($("#gPanel"), panelHTML(G, role, secret, spinning, st));
   updateClueBtn();
 
-  /* Игроки и меню */
   setHTML($("#gPlayers"), online ? `<div class="players">${sortedPlayers(S.players).map(p => plChip(p, G)).join("")}</div>` : "");
-  setHTML($("#gFoot"), (r.phase !== "result" ? `<button class="btn-quiet" type="button" data-act="skip">${confirmLabel("skip", "Пропустить раунд")}</button>` : "")
+  setHTML($("#gFoot"), (r.phase !== "result" && canSkip(G) ? `<button class="btn-quiet" type="button" data-act="skip">${confirmLabel("skip", "Пропустить раунд")}</button>` : "")
     + `<button class="btn-quiet" type="button" data-act="${online ? "leave" : "menu"}">${online ? confirmLabel("leave", "Выйти из комнаты") : "Выйти в меню"}</button>`);
 }
-function panelHTML(G, role, secret, spinning) {
-  const r = G.round, online = S.mode === "online", teams = G.mode === "teams";
+const nudgeRow = (act, label, primary) => `<div class="row nudge"><button class="btn" type="button" data-act="nudge" data-arg="-1" aria-label="Стрелку чуть левее">‹</button><button class="btn${primary ? " btn-primary" : ""} grow" type="button" data-act="${act}">${label}</button><button class="btn" type="button" data-act="nudge" data-arg="1" aria-label="Стрелку чуть правее">›</button></div>`;
+function openingMsg(G, text) {
+  const r = G.round;
+  if (S.online.has(r.psychic) || r.psychic === S.uid) return msg(`${text} Открываем шторку<span class="dots"></span>`);
+  return msg(`${text} Шторку откроет экстрасенс <b>${esc(nameOf(r.psychic))}</b>, но он сейчас не в сети.`) + (isAdmin(G) ? `<button class="btn btn-block" type="button" data-act="skip">${confirmLabel("skip", "Пропустить раунд")}</button>` : "");
+}
+function panelHTML(G, role, secret, spinning, st) {
+  const r = G.round, online = S.mode === "online", teams = G.mode === "teams", solo = G.mode === "solo";
   const k = rKey(G);
   if (r.phase === "think") {
     const psy = online ? role.psy : S.ui.peek;
@@ -1296,78 +1638,123 @@ function panelHTML(G, role, secret, spinning) {
     }
     if (spinning) return msg(`Диск крутится<span class="dots"></span>`);
     const [a, b] = S.ui.pair;
-    return msg("Цель видна только вам. Выберите шкалу и придумайте подсказку: слово или фразу, которая укажет на это место между крайностями.")
-      + `<div class="opts" role="group" aria-label="Шкала">${[a, b].map((c, i) => `<button class="opt" type="button" data-act="pick" data-arg="${i}" aria-pressed="${S.ui.pick === i}"><span>${esc(CARDS[c][0])}</span><span class="arr">↔</span><span>${esc(CARDS[c][1])}</span></button>`).join("")}</div>
-      <button class="btn-quiet" type="button" data-act="reroll">Показать другие шкалы</button>
+    return msg("Цель видна только вам. Выберите шкалу или задайте свою и придумайте подсказку, которая укажет на это место между крайностями.")
+      + `<div class="opts" role="group" aria-label="Шкала">${[a, b].map((c, i) => `<button class="opt" type="button" data-act="pick" data-arg="${i}" aria-pressed="${S.ui.pick === i}"><span>${esc(CARDS[c][0])}</span><span class="arr">↔</span><span>${esc(CARDS[c][1])}</span></button>`).join("")}
+        <button class="opt opt-own" type="button" data-act="pick" data-arg="2" aria-pressed="${S.ui.pick === 2}"><span>Своя шкала</span></button></div>
+      ${S.ui.pick === 2
+        ? `<div class="custom"><div class="field"><label for="leftInput">Левая крайность</label><input id="leftInput" data-draft="left" type="text" maxlength="32" autocomplete="off" placeholder="Например: тихо"></div><div class="field"><label for="rightInput">Правая крайность</label><input id="rightInput" data-draft="right" type="text" maxlength="32" autocomplete="off" placeholder="Например: громко"></div></div>`
+        : `<button class="btn-quiet" type="button" data-act="reroll">Показать другие шкалы</button>`}
       <div class="field"><label for="clueInput">Подсказка${online ? "" : " — или скажите её вслух"}</label><input id="clueInput" data-draft="clue" type="text" maxlength="60" autocomplete="off" placeholder="Например: чай"></div>
       <button class="btn btn-primary btn-block" id="clueSubmit" type="button" data-act="submitClue">${online ? "Отправить подсказку" : "Готово — закрыть шторку"}</button>`;
   }
   if (r.phase === "guess") {
-    if (online && role.psy) return msg("Подсказка отправлена. Теперь держите лицо: команда двигает стрелку, а вы видите, куда она смотрит.");
-    if (online && !role.guess) return msg(teams ? `Отгадывает команда <b>«${TEAMS[r.team]}»</b>. Следите за стрелкой: потом вы решите, где цель — левее или правее.` : "Игроки двигают стрелку.");
-    return msg(online ? "Перетащите стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте." : (teams ? `Команда <b>«${TEAMS[r.team]}»</b> двигает стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте.` : "Двигайте стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте."))
-      + `<div class="row nudge"><button class="btn" type="button" data-act="nudge" data-arg="-1" aria-label="Стрелку чуть левее">‹</button><button class="btn btn-primary grow" type="button" data-act="lock">Фиксируем</button><button class="btn" type="button" data-act="nudge" data-arg="1" aria-label="Стрелку чуть правее">›</button></div>`;
+    if (!online) return msg(teams ? `Команда <b>«${TEAMS[r.team]}»</b> двигает стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте.` : "Двигайте стрелку туда, куда указывает подсказка. Договоритесь и фиксируйте.")
+      + nudgeRow("lock", "Фиксируем", true);
+    if (solo) {
+      const stat = `<p class="status">Ответили <b>${st.done.length} из ${st.req.length}</b></p>`;
+      if (st.ready) return openingMsg(G, "Все ответили.");
+      const force = isAdmin(G) && st.done.length > 0 && !r.force ? `<button class="btn-quiet" type="button" data-act="force">Не ждать остальных</button>` : "";
+      if (role.psy) return msg("Игроки ставят свои стрелки. Их положение откроется вместе со шторкой.") + stat + force;
+      if (!role.guess) return msg("Игроки ставят стрелки.") + stat + force;
+      const mine = r.guesses && typeof r.guesses[S.uid] === "number";
+      if (mine) return msg("Ответ принят. Ждём остальных — все стрелки появятся вместе со шторкой.") + stat + `<button class="btn btn-block" type="button" data-act="guessEdit">Изменить ответ</button>` + force;
+      return msg("Поставьте свою стрелку туда, куда указывает подсказка. До открытия шторки её никто не увидит.") + nudgeRow("guessDone", "Готово", true) + stat + force;
+    }
+    const stat = `<p class="status">Согласны <b>${st.done.length} из ${st.req.length}</b></p>`;
+    if (st.ready) return teams ? msg(`Команда договорилась. Теперь слово соперникам<span class="dots"></span>`) : openingMsg(G, "Все согласны.");
+    if (role.psy) return msg("Подсказка отправлена. Держите лицо: команда двигает стрелку, а вы видите, куда она смотрит.") + stat;
+    if (!role.guess) return msg(teams ? `Отгадывает команда <b>«${TEAMS[r.team]}»</b>. Следите за стрелкой: потом вы решите, где цель — левее или правее.` : "Игроки двигают стрелку.") + stat;
+    const voted = r.votes && r.votes[S.uid];
+    return msg("Двигайте стрелку вместе. Когда все нажмут «Согласен», она зафиксируется. Сдвинули стрелку — согласия сбрасываются.")
+      + nudgeRow("vote", voted ? "Отменить согласие" : "Согласен", !voted) + stat;
   }
   if (r.phase === "side") {
     const opp = TEAMS[1 - r.team];
-    if (online && !role.opp) return msg(`Команда <b>«${opp}»</b> решает, где цель: левее или правее стрелки<span class="dots"></span>`);
-    return msg(`${online ? "" : `Слово команде <b>«${opp}»</b>. `}Цель левее или правее стрелки? Угадаете — +1 очко, если соперники не попали в «4».`)
+    if (!online) return msg(`Слово команде <b>«${opp}»</b>. Цель левее или правее стрелки? Угадаете — +1 очко, если соперники не попали в «4».`)
       + `<div class="row"><button class="btn" type="button" data-act="side" data-arg="left">← Левее</button><button class="btn" type="button" data-act="side" data-arg="right">Правее →</button></div>`;
+    const stat = `<p class="status">Выбрали <b>${st.done.length} из ${st.req.length}</b></p>`;
+    if (st.ready) return openingMsg(G, st.side ? `Команда «${opp}» решила: цель ${st.side === "left" ? "левее" : "правее"}.` : "");
+    const split = st.split ? msg("Мнения разделились — договоритесь.") : "";
+    if (!role.opp) return msg(`Команда <b>«${opp}»</b> решает, где цель: левее или правее стрелки<span class="dots"></span>`) + stat + split;
+    const my = r.sideVotes && r.sideVotes[S.uid];
+    return msg("Цель левее или правее стрелки? Сторона засчитается, когда вся команда выберет одно и то же. Угадаете — +1 очко, если соперники не попали в «4».")
+      + `<div class="row"><button class="btn${my === "left" ? " btn-primary" : ""}" type="button" data-act="side" data-arg="left" aria-pressed="${my === "left"}">← Левее</button><button class="btn${my === "right" ? " btn-primary" : ""}" type="button" data-act="side" data-arg="right" aria-pressed="${my === "right"}">Правее →</button></div>`
+      + stat + split;
   }
-  if (r.phase === "reveal") {
-    if (online && !role.psy) return msg(`Ждём, пока <b>${esc(nameOf(r.psychic))}</b> откроет шторку<span class="dots"></span>`);
-    if (secret == null) {
-      if (S.loadingSecret === k) return msg("Загружаем цель…");
-      return msg("Цель этого раунда не нашлась на этом устройстве — похоже, игру открыли с другого телефона.")
-        + `<button class="btn btn-block" type="button" data-act="skip">${confirmLabel("skip", "Пропустить раунд")}</button>`;
-    }
-    return msg(online ? "Выбор сделан. Открывайте!" : "Все готовы? Открываем шторку.")
-      + `<button class="btn btn-primary btn-block" type="button" data-act="reveal">Открыть шторку</button>`;
-  }
-  return resultHTML(G);
+  if (r.phase === "reveal") return msg(`Открываем шторку<span class="dots"></span>`);
+  return resultHTML(G, st);
 }
-function resultHTML(G) {
-  const r = G.round, teams = G.mode === "teams";
-  const words = { 4: "Точно в цель!", 3: "Совсем рядом", 2: "Почти", 0: "Мимо" };
+function resultHTML(G, st) {
+  const r = G.round, teams = G.mode === "teams", solo = G.mode === "solo", online = S.mode === "online";
   const end = gameWillEnd(G);
-  const lines = [];
-  if (teams) {
-    lines.push(r.pts ? `${pts(r.pts)} команде «${TEAMS[r.team]}»` : `Команда «${TEAMS[r.team]}» без очков`);
-    if (r.side) lines.push(r.sidePts ? `«${TEAMS[1 - r.team]}» угадали сторону: +1` : (r.pts === 4 ? "Попадание в «4» — соперникам очко не положено" : `«${TEAMS[1 - r.team]}» не угадали сторону`));
-    if (r.again && !end) lines.push(`«${TEAMS[r.team]}» отставали и попали в «4» — ходят ещё раз`);
+  const words = { 4: "Точно в цель!", 3: "Совсем рядом", 2: "Почти", 0: "Мимо" };
+  let body;
+  if (solo) {
+    const res = r.results || {};
+    const rows = Object.keys(res).map(u => ({ u, p: res[u] })).sort((a, b) => b.p - a.p);
+    const mine = res[S.uid];
+    const title = r.psychic === S.uid ? `Вы экстрасенс: +${r.psyPts || 0}` : (typeof mine === "number" ? `${words[mine]} · +${mine}` : "Итоги раунда");
+    body = `<div class="res-title">${title}</div>
+      <div class="board res-solo">${rows.map(x => `<div class="board-row${x.u === S.uid ? " is-me" : ""}"><span class="rank"></span><span class="cdot" style="background:${colorOf(x.u)}"></span><span class="who">${esc(nameOf(x.u))}</span><span class="val">+${x.p}</span></div>`).join("") || msg("Никто не успел ответить.")}</div>
+      ${msg(`Экстрасенс <b>${esc(nameOf(r.psychic))}</b> получает +${r.psyPts || 0} — по очку за каждого, кто попал в зону.`)}`;
   } else {
-    lines.push(`Всего у команды ${pts(G.score.coop)}`);
+    const lines = [];
+    if (teams) {
+      lines.push(r.pts ? `${pts(r.pts)} команде «${TEAMS[r.team]}»` : `Команда «${TEAMS[r.team]}» без очков`);
+      if (r.side) lines.push(r.sidePts ? `«${TEAMS[1 - r.team]}» угадали сторону: +1` : (r.pts === 4 ? "Попадание в «4» — соперникам очко не положено" : `«${TEAMS[1 - r.team]}» не угадали сторону`));
+      if (r.again && !end) lines.push(`«${TEAMS[r.team]}» отставали и попали в «4» — ходят ещё раз`);
+    } else lines.push(`Всего у команды ${pts(G.score.coop)}`);
+    body = `<div class="result"><div class="pts${r.pts ? "" : " is-zero"}">${r.pts ? "+" + r.pts : "0"}</div><div><div class="res-title">${words[r.pts] || ""}</div>${lines.map(l => `<p class="msg">${l}</p>`).join("")}</div></div>`;
   }
-  return `<div class="result"><div class="pts${r.pts ? "" : " is-zero"}">${r.pts ? "+" + r.pts : "0"}</div><div><div class="res-title">${words[r.pts] || ""}</div>${lines.map(l => `<p class="msg">${l}</p>`).join("")}</div></div>
-    <button class="btn btn-primary btn-block" type="button" data-act="next">${end ? "Итоги игры" : "Следующий раунд"}</button>`;
+  if (!online) return body + `<button class="btn btn-primary btn-block" type="button" data-act="next">${end ? "Итоги игры" : "Следующий раунд"}</button>`;
+  const iReady = r.ready && r.ready[S.uid];
+  const label = iReady ? "Отменить готовность" : (end ? "Готов — к итогам" : "Готов к следующему раунду");
+  const status = st.ready ? msg(`Все готовы<span class="dots"></span>`) : `<p class="status">Готовы <b>${st.done.length} из ${st.req.length}</b></p>`;
+  return body + `<button class="btn${iReady ? "" : " btn-primary"} btn-block" type="button" data-act="ready">${label}</button>` + status;
 }
 function updateClueBtn() {
   const b = $("#clueSubmit");
-  if (b && S.mode === "online") b.disabled = !String(S.drafts.clue || "").trim();
+  if (!b) return;
+  const needClue = S.mode === "online" && !String(S.drafts.clue || "").trim();
+  const needSpec = S.ui.pick === 2 && (!String(S.drafts.left || "").trim() || !String(S.drafts.right || "").trim());
+  b.disabled = needClue || needSpec;
 }
 
 /* Итоги */
 function renderOver() {
   show("vOver");
-  const G = G_(), teams = G.mode === "teams", online = S.mode === "online";
+  const G = G_(), teams = G.mode === "teams", solo = G.mode === "solo", online = S.mode === "online";
   let head;
   if (teams) {
     const [a, b] = G.score.t, w = a > b ? 0 : 1;
     head = `<div class="hero"><div class="eyebrow">Игра окончена</div><h1>Победили «${TEAMS[w]}»</h1><p class="big-score"><span class="t0">${a}</span> : <span class="t1">${b}</span></p></div>`;
+  } else if (solo) {
+    const sc = G.score.p || {};
+    const rows = sortedPlayers(S.players).map(p => ({ p, s: sc[p.seat] || 0 })).sort((x, y) => y.s - x.s);
+    const best = rows.length ? rows[0].s : 0, top = rows.filter(x => x.s === best).map(x => esc(x.p.name));
+    head = `<div class="hero"><div class="eyebrow">Игра окончена</div><h1>${top.length > 1 ? `Ничья: ${top.join(" и ")}` : `Победа: ${top[0] || "—"}`}</h1></div>
+      <div class="board">${rows.map((x, i) => `<div class="board-row${x.p.seat === S.uid ? " is-me" : ""}"><span class="rank">${i + 1}</span><span class="cdot" style="background:${colorOf(x.p.seat)}"></span><span class="who">${esc(x.p.name)}</span><span class="val">${x.s}</span></div>`).join("")}</div>`;
   } else {
     const max = G.rounds * 4, [title, line] = rating(G.score.coop / max);
     head = `<div class="hero"><div class="eyebrow">Игра окончена · ${G.score.coop} из ${max}</div><h1>${title}</h1><p class="lead">${line}</p></div>`;
   }
   const rows = (G.history || []).map(h => {
-    const card = h.card != null && CARDS[h.card] ? `${esc(CARDS[h.card][0])} ↔ ${esc(CARDS[h.card][1])}` : "—";
-    const sub = h.skipped ? "раунд пропущен" : (h.clue ? `«${esc(h.clue)}»` : "подсказка вслух");
+    const spec = Array.isArray(h.spec) ? h.spec : (h.card != null && CARDS[h.card] ? CARDS[h.card] : null);
+    const card = spec ? `${esc(spec[0])} ↔ ${esc(spec[1])}` : "—";
+    const clue = h.skipped ? "раунд пропущен" : (h.clue ? `«${esc(h.clue)}»` : "подсказка вслух");
     const who = online && h.psychic ? ` · ${esc(nameOf(h.psychic))}` : (teams && h.team != null ? ` · ${TEAM_SHORT[h.team]}` : "");
-    const score = h.skipped ? "—" : `+${h.pts}${h.sidePts ? ` <span class="side-pt t${1 - h.team}">+1</span>` : ""}`;
-    return `<tr><td class="n">${h.n}</td><td>${card}<div class="msg small">${sub}${who}</div></td><td class="num">${score}</td></tr>`;
+    let score;
+    if (h.skipped) score = "—";
+    else if (solo) { const res = h.results || {}; const hits = Object.keys(res).filter(u => res[u] > 0).length; score = `${hits}/${Object.keys(res).length}`; }
+    else score = `+${h.pts}${h.sidePts ? ` <span class="side-pt t${1 - h.team}">+1</span>` : ""}`;
+    return `<tr><td class="n">${h.n}</td><td>${card}<div class="msg small">${clue}${who}</div></td><td class="num">${score}</td></tr>`;
   }).join("");
+  const again = isAdmin(G)
+    ? `<button class="btn btn-primary btn-block" type="button" data-act="again">Сыграть ещё</button>`
+    : msg(`Новую партию начнёт <b>${esc(nameOf(adminSeat(G)))}</b>.`);
   setHTML($("#vOver"), `${head}
-    ${rows ? `<div class="panel"><h2>Как шли раунды</h2><div class="tbl"><table class="hist"><thead><tr><th>#</th><th>Шкала и подсказка</th><th class="num">Очки</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : ""}
-    <button class="btn btn-primary btn-block" type="button" data-act="again">Сыграть ещё</button>
+    ${rows ? `<div class="panel"><h2>Как шли раунды</h2><div class="tbl"><table class="hist"><thead><tr><th>#</th><th>Шкала и подсказка</th><th class="num">${solo ? "Попали" : "Очки"}</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : ""}
+    ${again}
     <button class="btn-quiet" type="button" data-act="${online ? "leave" : "menu"}">${online ? confirmLabel("leave", "Выйти из комнаты") : "В меню"}</button>`);
 }
 
@@ -1388,7 +1775,6 @@ async function keepAwake(on) {
   } catch { S.wake = null; }
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.view === "vGame") keepAwake(true); });
-
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]");
   if (!b || b.disabled) return;
@@ -1405,7 +1791,8 @@ document.addEventListener("input", e => {
     v = up;
   }
   S.drafts[el.dataset.draft] = v;
-  if (el.id === "clueInput") updateClueBtn();
+  if (el.id === "leftInput" || el.id === "rightInput") render();
+  updateClueBtn();
 });
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter" || !e.target || e.target.tagName !== "INPUT") return;
@@ -1413,7 +1800,7 @@ document.addEventListener("keydown", e => {
   if (id === "codeInput") ACT.join();
   else if (id === "clueInput") ACT.submitClue();
   else if (id === "lobbyNick") ACT.saveNick();
-  else if (id === "homeNick") ACT.create();
+  else if (id === "homeNick") { if (S.hashCode) ACT.joinRoom(S.hashCode); else ACT.create(); }
 });
 
 /* ---------------- Шкалы на странице ---------------- */
@@ -1421,17 +1808,20 @@ const dialG = createDial($("#gameDial"), "game");
 dialG.setInteractive(false, {
   input(v) {
     const G = G_(); if (!G || !G.round || G.round.phase !== "guess") return;
-    if (S.mode === "local") G.round.needle = r1(v);
-    else { S.needle = { n: G.round.n, v }; pushLiveNeedle(G.round.n, v); }
+    if (S.mode === "local") { G.round.needle = r1(v); return; }
+    if (G.mode === "solo") { S.myGuess = { n: G.round.n, v: r1(v) }; return; }
+    if (!S.dragCleared) { S.dragCleared = true; clearVotesNow(); }
+    S.needle = { n: G.round.n, v }; pushLiveNeedle(G.round.n, v);
   },
   commit(v) {
+    S.dragCleared = false;
     const G = G_(); if (!G || !G.round || G.round.phase !== "guess") return;
     v = r1(v);
-    if (S.mode === "local") { G.round.needle = v; saveLocal(); }
-    else { S.needle = { n: G.round.n, v }; pushLiveNeedle(G.round.n, v); queueNeedleWrite(v); }
+    if (S.mode === "local") { G.round.needle = v; saveLocal(); return; }
+    if (G.mode === "solo") { S.myGuess = { n: G.round.n, v }; return; }
+    S.needle = { n: G.round.n, v }; pushLiveNeedle(G.round.n, v); queueNeedleWrite(v);
   }
 });
-
 const demo = createDial($("#demoDial"), "demo");
 const DEMO_TARGET = 77;
 demo.setShutter(true, false);
@@ -1443,6 +1833,7 @@ demo.setInteractive(true, { input: demoScore, commit: demoScore });
 /* ---------------- Запуск ---------------- */
 render();
 initFirebase();
+
 })();
 </script>
 </body>
